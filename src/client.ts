@@ -22,7 +22,7 @@ export class ThinkFeel {
 
     this.apiKey = config.apiKey;
     this.personaId = config.personaId;
-    this.baseUrl = config.baseUrl || 'https://curvelabs.org';
+    this.baseUrl = config.baseUrl || 'https://playground.curvelabs.org';
   }
 
   /**
