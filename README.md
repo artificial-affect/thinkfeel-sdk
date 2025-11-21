@@ -117,7 +117,7 @@ new ThinkFeel(config: ThinkFeelConfig)
 
 - `config.apiKey` (string, required): Your Curve API key
 - `config.personaId` (string, required): The persona ID to use
-- `config.baseUrl` (string, optional): Custom API base URL (defaults to `https://curvelabs.org`)
+- `config.baseUrl` (string, optional): Custom API base URL (defaults to `https://playground.curvelabs.org`)
 
 #### Methods
 
