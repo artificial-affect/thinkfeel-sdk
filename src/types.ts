@@ -25,7 +25,7 @@ export interface Message {
   /**
    * The role of the message sender
    */
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
 
   /**
    * The content of the message
@@ -46,6 +46,16 @@ export interface GenerateOptions {
    * Whether to include multiple reply variations (default: false)
    */
   includeVariations?: boolean;
+}
+
+/**
+ * Options for personifying a raw base response
+ */
+export interface PersonifyOptions {
+  /**
+   * Raw base response text to rewrite in the configured persona voice
+   */
+  raw: string;
 }
 
 /**
@@ -86,6 +96,16 @@ export interface GenerateResponse {
    * Rate limit information
    */
   rateLimits?: RateLimit[];
+}
+
+/**
+ * Response from the personify API
+ */
+export interface PersonifyResponse {
+  /**
+   * The raw response rewritten in the configured persona voice
+   */
+  personified: string;
 }
 
 /**

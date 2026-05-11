@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "test:personify": "npm run build && node scripts/test-personify.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
