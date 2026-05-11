@@ -11,15 +11,15 @@ npm install @curvelabs.org/thinkfeel
 ## Quick Start
 
 ```typescript
-import { ThinkFeel } from '@curvelabs.org/thinkfeel';
+import { ThinkFeel } from "@curvelabs.org/thinkfeel";
 
 const thinkFeel = new ThinkFeel({
-  apiKey: 'YOUR_CURVE_API_KEY',
-  personaId: 'YOUR_CURVE_PERSONA_ID',
+  apiKey: "YOUR_CURVE_API_KEY",
+  personaId: "YOUR_CURVE_PERSONA_ID",
 });
 
 const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'hey :)' }],
+  messages: [{ role: "user", content: "hey :)" }],
   includeVariations: true,
 });
 
@@ -39,11 +39,11 @@ console.log(response.replyChoices);
 ### Initialize the Client
 
 ```typescript
-import { ThinkFeel } from '@curvelabs.org/thinkfeel';
+import { ThinkFeel } from "@curvelabs.org/thinkfeel";
 
 const thinkFeel = new ThinkFeel({
-  apiKey: 'your-api-key',
-  personaId: 'your-persona-id',
+  apiKey: "your-api-key",
+  personaId: "your-persona-id",
   // Optional: specify a custom base URL
   // baseUrl: "https://custom-domain.com"
 });
@@ -55,7 +55,7 @@ const thinkFeel = new ThinkFeel({
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'Hello!' }],
+  messages: [{ role: "user", content: "Hello!" }],
 });
 
 console.log(response.finalReply);
@@ -66,9 +66,9 @@ console.log(response.finalReply);
 ```typescript
 const response = await thinkFeel.generate({
   messages: [
-    { role: 'user', content: "What's your favorite color?" },
-    { role: 'assistant', content: 'I love blue!' },
-    { role: 'user', content: 'Why blue?' },
+    { role: "user", content: "What's your favorite color?" },
+    { role: "assistant", content: "I love blue!" },
+    { role: "user", content: "Why blue?" },
   ],
 });
 
@@ -79,7 +79,7 @@ console.log(response.finalReply);
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'How are you?' }],
+  messages: [{ role: "user", content: "How are you?" }],
   includeVariations: true,
 });
 
@@ -91,7 +91,7 @@ console.log(response.replyChoices); // Array of all variations
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'Hi!' }],
+  messages: [{ role: "user", content: "Hi!" }],
 });
 
 console.log(response.rateLimits);
@@ -143,7 +143,7 @@ Generate a response based on conversation messages.
 
 ```typescript
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 ```
@@ -173,12 +173,12 @@ interface RateLimit {
 ```typescript
 try {
   const response = await thinkFeel.generate({
-    messages: [{ role: 'user', content: 'Hello!' }],
+    messages: [{ role: "user", content: "Hello!" }],
   });
   console.log(response.finalReply);
 } catch (error) {
   if (error instanceof Error) {
-    console.error('Error:', error.message);
+    console.error("Error:", error.message);
   }
 }
 ```
