@@ -1,2 +1,11 @@
-export { ThinkFeel } from './client';
-export type { ThinkFeelConfig, Message, GenerateOptions, GenerateResponse, RateLimit, ThinkFeelError } from './types';
+export { ThinkFeel } from "./client";
+export type {
+  Message,
+  RateLimit,
+  ThinkFeelError,
+  GenerateOptions,
+  ThinkFeelConfig,
+  GenerateResponse,
+  PersonifyOptions,
+  PersonifyResponse,
+} from "./types";
