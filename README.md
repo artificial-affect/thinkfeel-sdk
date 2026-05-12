@@ -8,6 +8,37 @@ Official TypeScript/JavaScript SDK for the Curve ThinkFeel API - Generate realis
 npm install @curvelabs.org/thinkfeel
 ```
 
+## CLI
+
+The package also installs a `thinkfeel` command.
+
+```bash
+npx thinkfeel configure
+npx thinkfeel generate "hey :)"
+npx thinkfeel generate "hey :)" --variations --json
+npx thinkfeel personify "This is the raw response to rewrite."
+```
+
+For non-interactive setup:
+
+```bash
+npx thinkfeel configure --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+```
+
+To inspect or remove saved CLI configuration:
+
+```bash
+npx thinkfeel configure --show
+npx thinkfeel configure --clear
+```
+
+You can also override saved configuration with environment variables or flags:
+
+```bash
+THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" npx thinkfeel generate "Hello!"
+npx thinkfeel generate "Hello!" --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+```
+
 ## Quick Start
 
 ```typescript
@@ -25,6 +56,9 @@ const response = await thinkFeel.generate({
 
 console.log(response.finalReply);
 // => "hey! what's up?"
+
+console.log(response.chunks);
+// => ["hey!", "what's up ?"]
 
 console.log(response.replyChoices);
 // => [
@@ -59,6 +93,7 @@ const response = await thinkFeel.generate({
 });
 
 console.log(response.finalReply);
+console.log(response.chunks);
 ```
 
 #### With Conversation History
@@ -73,6 +108,7 @@ const response = await thinkFeel.generate({
 });
 
 console.log(response.finalReply);
+console.log(response.chunks);
 ```
 
 #### With Multiple Variations
@@ -84,6 +120,7 @@ const response = await thinkFeel.generate({
 });
 
 console.log(response.finalReply); // The selected best reply
+console.log(response.chunks); // Message-ready chunks for display or chat delivery
 console.log(response.replyChoices); // Array of all variations
 ```
 
@@ -133,6 +170,7 @@ Generate a response based on conversation messages.
 **Returns:** Promise<GenerateResponse>
 
 - `finalReply` (string): The selected best reply
+- `chunks` (string[]): The selected best reply split into message-ready chunks
 - `replyChoices` (string[], optional): Array of reply variations (only if `includeVariations` is true)
 - `status` (string): Generation status
 - `rateLimits` (RateLimit[], optional): Rate limit information
@@ -153,9 +191,19 @@ interface Message {
 ```typescript
 interface GenerateResponse {
   finalReply: string;
+  chunks: string[];
   replyChoices?: string[];
   status: string;
   rateLimits?: RateLimit[];
+}
+```
+
+### `PersonifyResponse`
+
+```typescript
+interface PersonifyResponse {
+  personified: string;
+  chunks: string[];
 }
 ```
 

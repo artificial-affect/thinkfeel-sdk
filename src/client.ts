@@ -81,6 +81,7 @@ export class ThinkFeel {
         status: string;
         rateLimits?: Array<{ limit: string; remaining: number }>;
         result?: {
+          chunks?: string[];
           finalReply?: string;
           replyChoices?: string[];
         };
@@ -89,6 +90,7 @@ export class ThinkFeel {
       return {
         status: data.status,
         rateLimits: data.rateLimits,
+        chunks: data.result?.chunks || [],
         replyChoices: data.result?.replyChoices,
         finalReply: data.result?.finalReply || "",
       };
@@ -146,10 +148,12 @@ export class ThinkFeel {
       }
 
       const data = (await response.json()) as {
+        chunks?: string[];
         personified?: string;
       };
 
       const personifyResponse: PersonifyResponse = {
+        chunks: data.chunks || [],
         personified: data.personified || "",
       };
 

@@ -83,6 +83,11 @@ export interface GenerateResponse {
   finalReply: string;
 
   /**
+   * Final reply split into message-ready chunks
+   */
+  chunks: string[];
+
+  /**
    * Array of reply variations (only included if includeVariations is true)
    */
   replyChoices?: string[];
@@ -106,6 +111,11 @@ export interface PersonifyResponse {
    * The raw response rewritten in the configured persona voice
    */
   personified: string;
+
+  /**
+   * Personified response split into message-ready chunks
+   */
+  chunks: string[];
 }
 
 /**
