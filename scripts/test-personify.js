@@ -11,7 +11,8 @@ async function main() {
     raw: "This is a placeholder base response. Replace it with the generated text you want rewritten in the persona voice.",
   });
 
-  console.log(response.personified);
+  console.log("Personified:", response.personified);
+  console.log("Chunks:", response.chunks);
 }
 
 main().catch((error) => {
