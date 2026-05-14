@@ -1,6 +1,6 @@
 {
   "name": "@curvelabs.org/thinkfeel",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Official SDK for Curve ThinkFeel API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,9 +15,8 @@
   },
   "scripts": {
     "build": "tsc && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
-    "test:api": "npm run build && node scripts/test-api.js",
-    "test:personify": "npm run build && node scripts/test-personify.js",
-    "prepublishOnly": "npm run build"
+    "test": "bash scripts/index.sh",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "curve",
@@ -34,6 +33,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/artificial-affect/thinkfeel-sdk"
+    "url": "git+https://github.com/artificial-affect/thinkfeel-sdk.git"
   }
 }

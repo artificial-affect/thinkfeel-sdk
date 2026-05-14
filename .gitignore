@@ -2,5 +2,8 @@ dist/
 *.log
 *.tgz
 .DS_Store
+.env.local
+.prettierrc
+.env.*.local
 node_modules/
 package-lock.json

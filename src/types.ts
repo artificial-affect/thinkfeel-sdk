@@ -13,10 +13,28 @@ export interface ThinkFeelConfig {
   personaId: string;
 
   /**
-   * Base URL for the API (optional, defaults to production)
+   * Base URL for the API (optional, defaults to the SDK base URL)
    */
   baseUrl?: string;
 }
+
+/**
+ * Role accepted by the V1 generate endpoint
+ */
+export type MessageRole = 'user' | 'assistant' | 'system' | 'developer';
+
+/**
+ * OpenAI-style text message part accepted by the V1 generate endpoint
+ */
+export interface MessageTextPart {
+  type: 'text';
+  text: string;
+}
+
+/**
+ * Message content accepted by the V1 generate endpoint
+ */
+export type MessageContent = string | MessageTextPart[];
 
 /**
  * A message in the conversation
@@ -25,12 +43,27 @@ export interface Message {
   /**
    * The role of the message sender
    */
-  role: "user" | "assistant";
+  role: MessageRole;
 
   /**
    * The content of the message
    */
-  content: string;
+  content: MessageContent;
+
+  /**
+   * Optional message timestamp. Seconds, milliseconds, and date strings are accepted.
+   */
+  timestamp?: number | string;
+
+  /**
+   * Optional camelCase timestamp alias accepted by the API.
+   */
+  createdAt?: number | string;
+
+  /**
+   * Optional snake_case timestamp alias accepted by the API.
+   */
+  created_at?: number | string;
 }
 
 /**
@@ -70,7 +103,7 @@ export interface RateLimit {
   /**
    * Remaining requests for this limit
    */
-  remaining: number;
+  remaining: number | null;
 }
 
 /**
