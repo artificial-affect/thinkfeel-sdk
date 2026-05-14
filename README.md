@@ -1,6 +1,6 @@
 # @curvelabs.org/thinkfeel
 
-Official TypeScript/JavaScript SDK for the Curve ThinkFeel API - Generate realistic, human-like responses with AI personas.
+Official TypeScript/JavaScript SDK for the Curve ThinkFeel API - generate persona-aware conversational responses and rewrites.
 
 ## Installation
 
@@ -10,13 +10,21 @@ npm install @curvelabs.org/thinkfeel
 
 ## CLI
 
-The package also installs a `thinkfeel` command.
+The package also installs a `thinkfeel` command. After installing:
 
 ```bash
 npx thinkfeel configure
-npx thinkfeel generate "hey :)"
-npx thinkfeel generate "hey :)" --variations --json
-npx thinkfeel personify "This is the raw response to rewrite."
+npx thinkfeel generate "I just got back from a long day and wanted to check in."
+npx thinkfeel generate "I just got back from a long day and wanted to check in." --variations
+npx thinkfeel personify "Thanks for reaching out. I can help with that. Send me the details when you have them."
+```
+
+`--variations` prints the full JSON response automatically so `replyChoices` are visible.
+
+For one-off usage without installing first:
+
+```bash
+npx --package @curvelabs.org/thinkfeel thinkfeel configure
 ```
 
 For non-interactive setup:
@@ -35,36 +43,68 @@ npx thinkfeel configure --clear
 You can also override saved configuration with environment variables or flags:
 
 ```bash
-THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" npx thinkfeel generate "Hello!"
-npx thinkfeel generate "Hello!" --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" npx thinkfeel generate "Can we talk later?"
+npx thinkfeel generate "Can we talk later?" --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+```
+
+## Contributor Tests
+
+From a cloned repo, tests require real API config.
+
+```bash
+THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" \
+THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" \
+THINKFEEL_BASE_URL="https://playground.curvelabs.org" \
+npm test
+```
+
+`npm test` builds, calls the live SDK, packs and installs the package in a temp project, then tests the installed CLI.
+
+Local env file:
+
+```bash
+cp .env.local.example .env.local
+npm test
+```
+
+Optional:
+
+```bash
+THINKFEEL_GENERATE_PROMPT="Can we talk later?"
+THINKFEEL_PERSONIFY_RAW="Thanks for reaching out. Send me the details when you have them."
 ```
 
 ## Quick Start
 
 ```typescript
-import { ThinkFeel } from "@curvelabs.org/thinkfeel";
+import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
 const thinkFeel = new ThinkFeel({
-  apiKey: "YOUR_CURVE_API_KEY",
-  personaId: "YOUR_CURVE_PERSONA_ID",
+  apiKey: 'YOUR_CURVE_API_KEY',
+  personaId: 'YOUR_CURVE_PERSONA_ID',
 });
 
 const response = await thinkFeel.generate({
-  messages: [{ role: "user", content: "hey :)" }],
+  messages: [
+    {
+      role: 'user',
+      content: 'I just got back from a long day and wanted to check in.',
+    },
+  ],
   includeVariations: true,
 });
 
 console.log(response.finalReply);
-// => "hey! what's up?"
+// => "I'm here. Want to tell me what happened?"
 
 console.log(response.chunks);
-// => ["hey!", "what's up ?"]
+// => ["I'm here.", "Want to tell me what happened?"]
 
 console.log(response.replyChoices);
 // => [
-//   "hey! what's up?",
-//   "hi, how's it going",
-//   "sup. good to hear from you"
+//   "I'm here. Want to tell me what happened?",
+//   "Long day? Tell me everything.",
+//   "Of course. What happened?"
 // ]
 ```
 
@@ -73,11 +113,11 @@ console.log(response.replyChoices);
 ### Initialize the Client
 
 ```typescript
-import { ThinkFeel } from "@curvelabs.org/thinkfeel";
+import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
 const thinkFeel = new ThinkFeel({
-  apiKey: "your-api-key",
-  personaId: "your-persona-id",
+  apiKey: 'your-api-key',
+  personaId: 'your-persona-id',
   // Optional: specify a custom base URL
   // baseUrl: "https://custom-domain.com"
 });
@@ -89,7 +129,7 @@ const thinkFeel = new ThinkFeel({
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: "user", content: "Hello!" }],
+  messages: [{ role: 'user', content: 'Can we talk later?' }],
 });
 
 console.log(response.finalReply);
@@ -101,9 +141,9 @@ console.log(response.chunks);
 ```typescript
 const response = await thinkFeel.generate({
   messages: [
-    { role: "user", content: "What's your favorite color?" },
-    { role: "assistant", content: "I love blue!" },
-    { role: "user", content: "Why blue?" },
+    { role: 'user', content: "What's your favorite color?" },
+    { role: 'assistant', content: 'I love blue!' },
+    { role: 'user', content: 'Does it remind you of anything?' },
   ],
 });
 
@@ -111,11 +151,26 @@ console.log(response.finalReply);
 console.log(response.chunks);
 ```
 
+#### With System Context
+
+The API accepts `user`, `assistant`, `system`, and `developer` roles. The final message must be from `user`.
+
+```typescript
+const response = await thinkFeel.generate({
+  messages: [
+    { role: 'system', content: 'Keep the reply concise.' },
+    { role: 'user', content: 'Can we talk later?' },
+  ],
+});
+
+console.log(response.finalReply);
+```
+
 #### With Multiple Variations
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: "user", content: "How are you?" }],
+  messages: [{ role: 'user', content: 'What should we do this weekend?' }],
   includeVariations: true,
 });
 
@@ -124,11 +179,24 @@ console.log(response.chunks); // Message-ready chunks for display or chat delive
 console.log(response.replyChoices); // Array of all variations
 ```
 
+### Personify Text
+
+Personify rewrites an existing base response in the configured persona voice.
+
+```typescript
+const personified = await thinkFeel.personify({
+  raw: 'Thanks for reaching out. I can help with that. Send me the details when you have them.',
+});
+
+console.log(personified.personified);
+console.log(personified.chunks);
+```
+
 ### Check Rate Limits
 
 ```typescript
 const response = await thinkFeel.generate({
-  messages: [{ role: "user", content: "Hi!" }],
+  messages: [{ role: 'user', content: 'Are you around?' }],
 });
 
 console.log(response.rateLimits);
@@ -175,14 +243,91 @@ Generate a response based on conversation messages.
 - `status` (string): Generation status
 - `rateLimits` (RateLimit[], optional): Rate limit information
 
+##### `personify(options: PersonifyOptions): Promise<PersonifyResponse>`
+
+Rewrite an existing base response in the configured persona voice.
+
+**Parameters:**
+
+- `options.raw` (string, required): Raw base response text to rewrite
+
+**Returns:** Promise<PersonifyResponse>
+
+- `personified` (string): The rewritten response
+- `chunks` (string[]): The rewritten response split into message-ready chunks
+
+## Endpoint Contracts
+
+The SDK methods map directly to the public V1 endpoints.
+This SDK covers `/api/v1/generate` and `/api/v1/personify`; it does not wrap the OpenAI-compatible `/api/v1/completions` endpoint.
+
+### `POST /api/v1/generate`
+
+Request body:
+
+```json
+{
+  "personaId": "YOUR_CURVE_PERSONA_ID",
+  "messages": [{ "role": "user", "content": "Can we talk later?" }],
+  "includeVariations": false
+}
+```
+
+Response body:
+
+```json
+{
+  "status": "success",
+  "rateLimits": [{ "limit": "requests_per_day", "remaining": 998 }],
+  "result": {
+    "finalReply": "Of course. Later works.",
+    "chunks": ["Of course.", "Later works."]
+  }
+}
+```
+
+When `includeVariations` is `true`, `result.replyChoices` is included when the API returns variations.
+
+### `POST /api/v1/personify`
+
+Request body:
+
+```json
+{
+  "personaId": "YOUR_CURVE_PERSONA_ID",
+  "raw": "Thanks for reaching out. Send me the details when you have them."
+}
+```
+
+Response body:
+
+```json
+{
+  "personified": "Yeah, send me the details when you have them.",
+  "chunks": ["Yeah, send me the details when you have them."]
+}
+```
+
 ## Types
 
 ### `Message`
 
 ```typescript
+type MessageRole = 'user' | 'assistant' | 'system' | 'developer';
+
+interface MessageTextPart {
+  type: 'text';
+  text: string;
+}
+
+type MessageContent = string | MessageTextPart[];
+
 interface Message {
-  role: "user" | "assistant";
-  content: string;
+  role: MessageRole;
+  content: MessageContent;
+  timestamp?: number | string;
+  createdAt?: number | string;
+  created_at?: number | string;
 }
 ```
 
@@ -195,6 +340,14 @@ interface GenerateResponse {
   replyChoices?: string[];
   status: string;
   rateLimits?: RateLimit[];
+}
+```
+
+### `PersonifyOptions`
+
+```typescript
+interface PersonifyOptions {
+  raw: string;
 }
 ```
 
@@ -212,7 +365,7 @@ interface PersonifyResponse {
 ```typescript
 interface RateLimit {
   limit: string;
-  remaining: number;
+  remaining: number | null;
 }
 ```
 
@@ -221,12 +374,12 @@ interface RateLimit {
 ```typescript
 try {
   const response = await thinkFeel.generate({
-    messages: [{ role: "user", content: "Hello!" }],
+    messages: [{ role: 'user', content: 'Can we talk later?' }],
   });
   console.log(response.finalReply);
 } catch (error) {
   if (error instanceof Error) {
-    console.error("Error:", error.message);
+    console.error('Error:', error.message);
   }
 }
 ```

@@ -26,9 +26,13 @@ Thank you for your interest in contributing to the ThinkFeel SDK!
 
 ```
 src/
+├── cli.ts          # Command-line interface
 ├── client.ts       # Main ThinkFeel class implementation
 ├── types.ts        # TypeScript type definitions
 └── index.ts        # Public API exports
+scripts/
+├── index.sh          # Loads local env and runs tests
+└── test-live.js      # Live SDK and installed CLI test
 ```
 
 ## Making Changes
@@ -47,18 +51,15 @@ src/
 
 ## Testing Locally
 
-To test your changes before submitting:
+Tests call the live API and require credentials:
 
 ```bash
-# Build the package
-npm run build
-
-# Create a test package
-npm pack
-
-# In another project, install the local package
-npm install /path/to/curvelabs.org-thinkfeel-0.1.0.tgz
+cp .env.local.example .env.local
+# Edit .env.local with real values.
+npm test
 ```
+
+`npm test` builds the package, calls the live SDK, packs and installs the package in a temp project, then tests the installed CLI.
 
 ## Submitting Changes
 
