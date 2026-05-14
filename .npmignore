@@ -1,5 +1,10 @@
 src/
 *.log
+*.tgz
 .DS_Store
+.env.local
+.prettierrc
+.env.*.local
 node_modules/
 tsconfig.json
+package-lock.json
