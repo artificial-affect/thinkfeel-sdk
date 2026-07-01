@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 import path from 'node:path';
+import http from 'node:http';
 import { ThinkFeel } from './client';
 import readline from 'node:readline';
 import { parseArgs } from 'node:util';
 import { homedir, platform } from 'node:os';
+import { execFile } from 'node:child_process';
+import { randomUUID, webcrypto } from 'node:crypto';
 import { rm, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const usage = `Usage:
   thinkfeel configure [options]
+  thinkfeel login [options]
   thinkfeel generate "message" [options]
   thinkfeel personify "raw response" [options]
 
@@ -15,6 +19,7 @@ Options:
   --api-key <key>        Curve API key. Defaults to THINKFEEL_API_KEY.
   --persona-id <id>      Curve persona ID. Defaults to THINKFEEL_PERSONA_ID.
   --base-url <url>       API base URL. Defaults to THINKFEEL_BASE_URL or the SDK base URL.
+  --name <name>           API key name when using login.
   --variations           Include reply variations and print JSON when using generate.
   --json                 Print the full API response as JSON.
   --show                 Show saved configuration when using configure.
@@ -22,10 +27,16 @@ Options:
   -h, --help             Show this help message.`;
 
 const setupGuidance = 'Run "thinkfeel configure" or set THINKFEEL_API_KEY and THINKFEEL_PERSONA_ID.';
-const commands = new Set(['configure', 'generate', 'personify']);
+const commands = new Set(['configure', 'login', 'generate', 'personify']);
+const defaultBaseUrl = 'https://playground.curvelabs.org';
+const encryptedApiKeyVersion = 1;
+const { subtle } = webcrypto;
 
 type CliValues = Record<string, string | boolean | undefined>;
 type CliConfig = { apiKey?: string; baseUrl?: string; personaId?: string };
+type EncryptedApiKey = { ciphertext?: unknown; version?: unknown };
+type CryptoKey = webcrypto.CryptoKey;
+type JsonWebKey = webcrypto.JsonWebKey;
 
 function getStringOption(values: CliValues, kebabName: string, camelName: string) {
   const kebabValue = values[kebabName];
@@ -183,6 +194,142 @@ function formatChunks(chunks: string[], fallback: string) {
   return fallback;
 }
 
+function base64urlJson(value: unknown) {
+  return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+}
+
+function base64urlToBytes(value: string) {
+  return Buffer.from(value, 'base64url');
+}
+
+function minimalPublicJwk(publicJwk: JsonWebKey) {
+  if (publicJwk.kty !== 'RSA' || !publicJwk.n || !publicJwk.e) {
+    throw new Error('Generated keypair did not produce an RSA public JWK.');
+  }
+
+  return { e: publicJwk.e, kty: 'RSA', n: publicJwk.n };
+}
+
+async function generateRecipientKeyPair() {
+  const keyPair = await subtle.generateKey(
+    {
+      hash: 'SHA-256',
+      name: 'RSA-OAEP',
+      modulusLength: 4096,
+      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+    },
+    true,
+    ['encrypt', 'decrypt']
+  );
+
+  const publicJwk = minimalPublicJwk(await subtle.exportKey('jwk', keyPair.publicKey));
+  return { privateKey: keyPair.privateKey, publicJwk };
+}
+
+async function decryptEncryptedApiKey(privateKey: CryptoKey, encryptedApiKey: EncryptedApiKey) {
+  if (encryptedApiKey.version !== encryptedApiKeyVersion) throw new Error('Unsupported encrypted API key version.');
+  if (typeof encryptedApiKey.ciphertext !== 'string') throw new Error('Missing encrypted API key ciphertext.');
+
+  const plaintext = await subtle.decrypt(
+    { name: 'RSA-OAEP' },
+    privateKey,
+    base64urlToBytes(encryptedApiKey.ciphertext)
+  );
+
+  return new TextDecoder().decode(plaintext);
+}
+
+function openBrowser(url: string) {
+  const command = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'cmd' : 'xdg-open';
+  const args = platform() === 'win32' ? ['/c', 'start', '', url] : [url];
+
+  execFile(command, args, error => {
+    if (error) console.log(`Open this URL in your browser:\n${url}`);
+  });
+}
+
+function readRequestBody(request: http.IncomingMessage) {
+  return new Promise<string>((resolve, reject) => {
+    let body = '';
+    request.setEncoding('utf8');
+    request.on('data', chunk => {
+      body += chunk;
+      if (body.length > 100_000) {
+        reject(new Error('Login callback payload is too large.'));
+        request.destroy();
+      }
+    });
+    request.on('end', () => resolve(body));
+    request.on('error', reject);
+  });
+}
+
+function startLoginCallbackServer(state: string) {
+  let resolveCallback = (_value: { encryptedApiKey: EncryptedApiKey }) => {};
+  let rejectCallback = (_reason?: unknown) => {};
+  const callbackPromise = new Promise<{ encryptedApiKey: EncryptedApiKey }>((resolve, reject) => {
+    resolveCallback = resolve;
+    rejectCallback = reject;
+  });
+
+  const serverReady = new Promise<{ callbackPromise: Promise<{ encryptedApiKey: EncryptedApiKey }>; redirectUri: string }>(
+    (resolve, reject) => {
+      const server = http.createServer(async (request, response) => {
+        try {
+          if (request.method !== 'POST' || request.url !== '/thinkfeel/callback') {
+            response.writeHead(404, { 'Content-Type': 'text/plain' });
+            response.end('Not found');
+            return;
+          }
+
+          const form = new URLSearchParams(await readRequestBody(request));
+          if (form.get('state') !== state) throw new Error('Invalid login callback state.');
+
+          const encryptedApiKeyRaw = form.get('encrypted_api_key');
+          if (!encryptedApiKeyRaw) throw new Error('Missing encrypted API key.');
+
+          response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          response.end(
+            '<!doctype html><title>ThinkFeel Login</title><p>ThinkFeel CLI login complete. You can close this tab.</p>'
+          );
+          server.close();
+          resolveCallback({ encryptedApiKey: JSON.parse(encryptedApiKeyRaw) as EncryptedApiKey });
+        } catch (error) {
+          response.writeHead(400, { 'Content-Type': 'text/plain' });
+          response.end(error instanceof Error ? error.message : String(error));
+          server.close();
+          rejectCallback(error);
+        }
+      });
+
+      const timeout = setTimeout(() => {
+        server.close();
+        rejectCallback(new Error('Timed out waiting for browser login.'));
+      }, 5 * 60 * 1000);
+
+      server.on('close', () => clearTimeout(timeout));
+      server.on('error', error => {
+        reject(error);
+        rejectCallback(error);
+      });
+      server.listen(0, '127.0.0.1', () => {
+        const address = server.address();
+        if (!address || typeof address === 'string') {
+          server.close();
+          const error = new Error('Failed to start local login callback.');
+          reject(error);
+          rejectCallback(error);
+          return;
+        }
+
+        resolve({ callbackPromise, redirectUri: `http://127.0.0.1:${address.port}/thinkfeel/callback` });
+      });
+    }
+  );
+
+  return serverReady;
+}
+
 async function resolveRuntimeConfig(values: CliValues): Promise<CliConfig> {
   const savedConfig = await readSavedConfig();
 
@@ -236,6 +383,38 @@ async function configure(values: CliValues) {
   console.log(`Saved ThinkFeel config at ${getConfigPath()}`);
 }
 
+async function login(values: CliValues) {
+  const savedConfig = await readSavedConfig();
+  const flagBaseUrl = getStringOption(values, 'base-url', 'baseUrl');
+  const flagPersonaId = getStringOption(values, 'persona-id', 'personaId');
+  const keyName = getStringOption(values, 'name', 'name') ?? 'ThinkFeel CLI';
+  const baseUrl = flagBaseUrl ?? process.env.THINKFEEL_BASE_URL ?? savedConfig.baseUrl ?? defaultBaseUrl;
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  const state = randomUUID();
+  const keyPair = await generateRecipientKeyPair();
+  const { callbackPromise, redirectUri } = await startLoginCallbackServer(state);
+  const loginUrl = new URL('/api/thinkfeel/cli/login', normalizedBaseUrl);
+  loginUrl.searchParams.set('state', state);
+  loginUrl.searchParams.set('name', keyName);
+  loginUrl.searchParams.set('source', 'codex');
+  loginUrl.searchParams.set('redirect_uri', redirectUri);
+  loginUrl.searchParams.set('recipient_public_key_jwk', base64urlJson(keyPair.publicJwk));
+
+  console.log('Opening browser for ThinkFeel login...');
+  openBrowser(loginUrl.toString());
+
+  const { encryptedApiKey } = await callbackPromise;
+  const apiKey = await decryptEncryptedApiKey(keyPair.privateKey, encryptedApiKey);
+  const nextConfig: CliConfig = { ...savedConfig, apiKey };
+  const personaId = flagPersonaId ?? process.env.THINKFEEL_PERSONA_ID ?? savedConfig.personaId;
+  if (personaId) nextConfig.personaId = personaId;
+  if (flagBaseUrl || savedConfig.baseUrl || process.env.THINKFEEL_BASE_URL) nextConfig.baseUrl = normalizedBaseUrl;
+
+  await writeSavedConfig(nextConfig);
+  console.log(`Saved ThinkFeel API key at ${getConfigPath()}`);
+  if (!nextConfig.personaId) console.log('Run "thinkfeel configure" to set a default persona ID before generate/personify.');
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -243,6 +422,7 @@ async function main() {
       apiKey: { type: 'string' },
       baseUrl: { type: 'string' },
       'api-key': { type: 'string' },
+      name: { type: 'string' },
       personaId: { type: 'string' },
       'base-url': { type: 'string' },
       'persona-id': { type: 'string' },
@@ -258,6 +438,11 @@ async function main() {
 
   if (!command || command === 'help' || values.help) {
     console.log(usage);
+    return;
+  }
+
+  if (command === 'login') {
+    await login(values);
     return;
   }
 
