@@ -8,7 +8,8 @@
     "thinkfeel": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "SKILL.md"
   ],
   "engines": {
     "node": ">=18"
