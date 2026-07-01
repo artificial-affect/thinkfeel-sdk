@@ -396,7 +396,6 @@ async function login(values: CliValues) {
   const loginUrl = new URL('/api/thinkfeel/cli/login', normalizedBaseUrl);
   loginUrl.searchParams.set('state', state);
   loginUrl.searchParams.set('name', keyName);
-  loginUrl.searchParams.set('source', 'codex');
   loginUrl.searchParams.set('redirect_uri', redirectUri);
   loginUrl.searchParams.set('recipient_public_key_jwk', base64urlJson(keyPair.publicJwk));
 
