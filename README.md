@@ -13,11 +13,14 @@ npm install @curvelabs.org/thinkfeel
 The package also installs a `thinkfeel` command. After installing:
 
 ```bash
+npx thinkfeel login
 npx thinkfeel configure
 npx thinkfeel generate "I just got back from a long day and wanted to check in."
 npx thinkfeel generate "I just got back from a long day and wanted to check in." --variations
 npx thinkfeel personify "Thanks for reaching out. I can help with that. Send me the details when you have them."
 ```
+
+`thinkfeel login` opens the Playground sign-in flow in your browser, creates a new ThinkFeel API key for approved accounts, and saves it to the local CLI config without printing the key.
 
 `--variations` prints the full JSON response automatically so `replyChoices` are visible.
 
@@ -31,6 +34,7 @@ For non-interactive setup:
 
 ```bash
 npx thinkfeel configure --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+npx thinkfeel login --persona-id YOUR_CURVE_PERSONA_ID
 ```
 
 To inspect or remove saved CLI configuration:
