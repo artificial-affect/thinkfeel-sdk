@@ -3,7 +3,7 @@ const { tmpdir } = require('node:os');
 const { ThinkFeel } = require('../dist');
 const assert = require('node:assert/strict');
 const { execFile } = require('node:child_process');
-const { mkdir, mkdtemp, rm } = require('node:fs/promises');
+const { mkdir, mkdtemp, rm, writeFile } = require('node:fs/promises');
 
 const rootDir = path.resolve(__dirname, '..');
 const divider = '='.repeat(72);
@@ -72,7 +72,8 @@ function getConfig() {
 
 function exec(command, args, options = {}) {
   return new Promise((resolve, reject) => {
-    execFile(command, args, options, (error, stdout, stderr) => {
+    const { input, ...execOptions } = options;
+    const child = execFile(command, args, execOptions, (error, stdout, stderr) => {
       if (error) {
         error.stdout = stdout;
         error.stderr = stderr;
@@ -82,6 +83,8 @@ function exec(command, args, options = {}) {
 
       resolve({ stdout, stderr });
     });
+
+    if (input !== undefined) child.stdin.end(input);
   });
 }
 
@@ -157,7 +160,7 @@ function cliEnv(config, extra = {}) {
   return env;
 }
 
-const runCli = (appDir, env, args) => exec('npx', ['thinkfeel', ...args], { cwd: appDir, env });
+const runCli = (appDir, env, args, options = {}) => exec('npx', ['thinkfeel', ...args], { cwd: appDir, env, ...options });
 
 function withoutRuntimeCredentials(configDir, npmCacheDir) {
   const env = { ...process.env, THINKFEEL_CONFIG_DIR: configDir, npm_config_cache: npmCacheDir };
@@ -214,7 +217,9 @@ async function testInstalledCli(config) {
     step('CLI --help');
     const help = await runCli(appDir, cliEnv(config, { npm_config_cache: npmCacheDir }), ['--help']);
 
-    assert.match(help.stdout, /--api-key <key>/);
+    assert.match(help.stdout, /--api-key-env <name>/);
+    assert.match(help.stdout, /--api-key-stdin/);
+    assert.match(help.stdout, /--profile <name>/);
     assert.match(help.stdout, /--persona-id <id>/);
     assert.match(help.stdout, /--base-url <url>/);
     assert.match(help.stdout, /--variations/);
@@ -222,6 +227,24 @@ async function testInstalledCli(config) {
     assert.match(help.stdout, /--show/);
     assert.match(help.stdout, /--clear/);
     passed('CLI --help');
+
+    step('CLI rejects --api-key argv secret');
+    await assert.rejects(
+      () =>
+        runCli(appDir, withoutRuntimeCredentials(path.join(tempDir, 'config-argv-reject'), npmCacheDir), [
+          'generate',
+          '--api-key',
+          config.apiKey,
+          '--persona-id',
+          config.personaId,
+          config.generatePrompt,
+        ]),
+      error => {
+        assert.match(error.stderr, /Passing API keys with --api-key is not supported/);
+        return true;
+      }
+    );
+    passed('CLI rejects --api-key');
 
     step('CLI generate using environment variables');
     const envGenerate = await runCli(
@@ -234,14 +257,17 @@ async function testInstalledCli(config) {
     passed('CLI generate using environment variables');
     summarizeText('stdout', envGenerate.stdout);
 
-    step('CLI generate --json using explicit flags');
+    step('CLI generate --json using --api-key-env');
     const flagGenerateJson = await runCli(
       appDir,
-      withoutRuntimeCredentials(path.join(tempDir, 'config-flags'), npmCacheDir),
+      {
+        ...withoutRuntimeCredentials(path.join(tempDir, 'config-flags'), npmCacheDir),
+        THINKFEEL_LIVE_TEST_API_KEY: config.apiKey,
+      },
       [
         'generate',
-        '--api-key',
-        config.apiKey,
+        '--api-key-env',
+        'THINKFEEL_LIVE_TEST_API_KEY',
         '--persona-id',
         config.personaId,
         '--base-url',
@@ -253,17 +279,20 @@ async function testInstalledCli(config) {
     const flagGenerateJsonResponse = JSON.parse(flagGenerateJson.stdout);
     assertGenerateResponse(flagGenerateJsonResponse, 'CLI flag generate json');
     assert.equal(flagGenerateJson.stderr, '');
-    passed('CLI generate --json using explicit flags');
+    passed('CLI generate --json using --api-key-env');
     summarizeGenerate(flagGenerateJsonResponse);
 
-    step('CLI generate --variations using explicit flags');
+    step('CLI generate --variations using --api-key-env');
     const flagGenerateVariations = await runCli(
       appDir,
-      withoutRuntimeCredentials(path.join(tempDir, 'config-variations'), npmCacheDir),
+      {
+        ...withoutRuntimeCredentials(path.join(tempDir, 'config-variations'), npmCacheDir),
+        THINKFEEL_LIVE_TEST_API_KEY: config.apiKey,
+      },
       [
         'generate',
-        '--api-key',
-        config.apiKey,
+        '--api-key-env',
+        'THINKFEEL_LIVE_TEST_API_KEY',
         '--persona-id',
         config.personaId,
         '--base-url',
@@ -275,17 +304,20 @@ async function testInstalledCli(config) {
     const flagGenerateVariationsResponse = JSON.parse(flagGenerateVariations.stdout);
     assertGenerateResponse(flagGenerateVariationsResponse, 'CLI flag generate variations', true);
     assert.equal(flagGenerateVariations.stderr, '');
-    passed('CLI generate --variations using explicit flags');
+    passed('CLI generate --variations using --api-key-env');
     summarizeGenerate(flagGenerateVariationsResponse);
 
-    step('CLI personify --json using explicit flags');
+    step('CLI personify --json using --api-key-env');
     const flagPersonifyJson = await runCli(
       appDir,
-      withoutRuntimeCredentials(path.join(tempDir, 'config-personify'), npmCacheDir),
+      {
+        ...withoutRuntimeCredentials(path.join(tempDir, 'config-personify'), npmCacheDir),
+        THINKFEEL_LIVE_TEST_API_KEY: config.apiKey,
+      },
       [
         'personify',
-        '--api-key',
-        config.apiKey,
+        '--api-key-env',
+        'THINKFEEL_LIVE_TEST_API_KEY',
         '--persona-id',
         config.personaId,
         '--base-url',
@@ -297,28 +329,25 @@ async function testInstalledCli(config) {
     const flagPersonifyJsonResponse = JSON.parse(flagPersonifyJson.stdout);
     assertPersonifyResponse(flagPersonifyJsonResponse, 'CLI flag personify json');
     assert.equal(flagPersonifyJson.stderr, '');
-    passed('CLI personify --json using explicit flags');
+    passed('CLI personify --json using --api-key-env');
     summarizePersonify(flagPersonifyJsonResponse);
 
     const savedEnv = withoutRuntimeCredentials(savedConfigDir, npmCacheDir);
 
-    step('CLI configure saved credentials in isolated temp config');
-    const configure = await runCli(appDir, savedEnv, [
-      'configure',
-      '--api-key',
-      config.apiKey,
-      '--persona-id',
-      config.personaId,
-      '--base-url',
-      config.baseUrl,
-    ]);
-    assert.match(configure.stdout, /Saved ThinkFeel config at /);
+    step('CLI configure saved credentials with --api-key-stdin');
+    const configure = await runCli(
+      appDir,
+      savedEnv,
+      ['configure', '--profile', 'stdin', '--api-key-stdin', '--persona-id', config.personaId, '--base-url', config.baseUrl],
+      { input: `${config.apiKey}\n` }
+    );
+    assert.match(configure.stdout, /Saved ThinkFeel profile "stdin" at /);
     assert.equal(configure.stderr, '');
-    passed('CLI configure saved credentials');
+    passed('CLI configure saved credentials with --api-key-stdin');
     summarizeText('stdout', configure.stdout);
 
     step('CLI configure --show masks API key');
-    const show = await runCli(appDir, savedEnv, ['configure', '--show']);
+    const show = await runCli(appDir, savedEnv, ['configure', '--show', '--profile', 'stdin']);
 
     assert.match(show.stdout, /API key: /);
     assert.ok(!show.stdout.includes(config.apiKey), 'configure --show must not print the raw API key');
@@ -330,19 +359,83 @@ async function testInstalledCli(config) {
     passed('CLI configure --show');
     summarizeText('stdout', show.stdout);
 
-    step('CLI generate using saved config');
-    const savedGenerate = await runCli(appDir, savedEnv, ['generate', config.generatePrompt]);
+    step('CLI generate using saved profile');
+    const savedGenerate = await runCli(appDir, savedEnv, ['generate', '--profile', 'stdin', config.generatePrompt]);
     assertNonEmptyString(savedGenerate.stdout, 'CLI saved generate stdout');
     assert.equal(savedGenerate.stderr, '');
-    passed('CLI generate using saved config');
+    passed('CLI generate using saved profile');
     summarizeText('stdout', savedGenerate.stdout);
 
-    step('CLI personify using saved config');
-    const savedPersonify = await runCli(appDir, savedEnv, ['personify', config.personifyRaw]);
+    step('CLI personify using saved profile');
+    const savedPersonify = await runCli(appDir, savedEnv, ['personify', '--profile', 'stdin', config.personifyRaw]);
     assertNonEmptyString(savedPersonify.stdout, 'CLI saved personify stdout');
     assert.equal(savedPersonify.stderr, '');
-    passed('CLI personify using saved config');
+    passed('CLI personify using saved profile');
     summarizeText('stdout', savedPersonify.stdout);
+
+    step('CLI configure profile with --api-key-env');
+    const envProfileEnv = { ...savedEnv, THINKFEEL_LIVE_TEST_API_KEY: config.apiKey };
+    const envProfileConfigure = await runCli(appDir, envProfileEnv, [
+      'configure',
+      '--profile',
+      'env-ref',
+      '--api-key-env',
+      'THINKFEEL_LIVE_TEST_API_KEY',
+      '--persona-id',
+      config.personaId,
+      '--base-url',
+      config.baseUrl,
+    ]);
+    assert.match(envProfileConfigure.stdout, /Saved ThinkFeel profile "env-ref" at /);
+    assert.equal(envProfileConfigure.stderr, '');
+    passed('CLI configure profile with --api-key-env');
+
+    step('CLI profiles masks API keys');
+    const profiles = await runCli(appDir, envProfileEnv, ['profiles']);
+    assert.match(profiles.stdout, /stdin/);
+    assert.match(profiles.stdout, /env-ref/);
+    assert.match(profiles.stdout, /apiKeyEnv=THINKFEEL_LIVE_TEST_API_KEY/);
+    assert.ok(!profiles.stdout.includes(config.apiKey), 'profiles must not print the raw API key');
+    assert.equal(profiles.stderr, '');
+    passed('CLI profiles');
+    summarizeText('stdout', profiles.stdout);
+
+    step('CLI use switches active profile');
+    const useEnvProfile = await runCli(appDir, envProfileEnv, ['use', 'env-ref']);
+    assert.match(useEnvProfile.stdout, /Active ThinkFeel profile: env-ref/);
+    assert.equal(useEnvProfile.stderr, '');
+    passed('CLI use');
+
+    step('CLI generate using active env profile');
+    const envProfileGenerate = await runCli(appDir, envProfileEnv, ['generate', config.generatePrompt]);
+    assertNonEmptyString(envProfileGenerate.stdout, 'CLI env profile generate stdout');
+    assert.equal(envProfileGenerate.stderr, '');
+    passed('CLI generate using active env profile');
+    summarizeText('stdout', envProfileGenerate.stdout);
+
+    step('CLI configure --clear --profile deletes one profile');
+    const clearOneProfile = await runCli(appDir, savedEnv, ['configure', '--clear', '--profile', 'stdin']);
+    assert.match(clearOneProfile.stdout, /Deleted ThinkFeel profile "stdin" at /);
+    assert.equal(clearOneProfile.stderr, '');
+    passed('CLI configure --clear --profile');
+
+    step('CLI reads legacy flat config as default profile');
+    const legacyConfigDir = path.join(tempDir, 'config-legacy');
+    await mkdir(legacyConfigDir, { recursive: true });
+    await writeFile(
+      path.join(legacyConfigDir, 'config.json'),
+      `${JSON.stringify({ apiKey: config.apiKey, baseUrl: config.baseUrl, personaId: config.personaId }, null, 2)}\n`,
+      { mode: 0o600 }
+    );
+    const legacyEnv = withoutRuntimeCredentials(legacyConfigDir, npmCacheDir);
+    const legacyShow = await runCli(appDir, legacyEnv, ['configure', '--show']);
+    assert.match(legacyShow.stdout, /Profile: default/);
+    assert.ok(!legacyShow.stdout.includes(config.apiKey), 'legacy configure --show must not print the raw API key');
+    assert.equal(legacyShow.stderr, '');
+    const legacyGenerate = await runCli(appDir, legacyEnv, ['generate', config.generatePrompt]);
+    assertNonEmptyString(legacyGenerate.stdout, 'CLI legacy generate stdout');
+    assert.equal(legacyGenerate.stderr, '');
+    passed('CLI legacy config migration');
 
     step('CLI configure --clear');
     const clear = await runCli(appDir, savedEnv, ['configure', '--clear']);
@@ -355,7 +448,7 @@ async function testInstalledCli(config) {
     await assert.rejects(
       () => runCli(appDir, savedEnv, ['generate', config.generatePrompt]),
       error => {
-        assert.match(error.stderr, /Run "thinkfeel configure" or set THINKFEEL_API_KEY and THINKFEEL_PERSONA_ID/);
+        assert.match(error.stderr, /Run "thinkfeel login", run "thinkfeel configure", or set THINKFEEL_API_KEY/);
         return true;
       }
     );
