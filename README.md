@@ -33,7 +33,8 @@ npx --package @curvelabs.org/thinkfeel thinkfeel configure
 For non-interactive setup:
 
 ```bash
-npx thinkfeel configure --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+printf '%s\n' "$CURVE_API_KEY" | npx thinkfeel configure --api-key-stdin --persona-id YOUR_CURVE_PERSONA_ID
+npx thinkfeel configure --api-key-env CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
 npx thinkfeel login --persona-id YOUR_CURVE_PERSONA_ID
 ```
 
@@ -44,11 +45,19 @@ npx thinkfeel configure --show
 npx thinkfeel configure --clear
 ```
 
-You can also override saved configuration with environment variables or flags:
+The CLI supports multiple saved profiles:
+
+```bash
+npx thinkfeel configure --profile work --api-key-env WORK_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+npx thinkfeel use work
+npx thinkfeel profiles
+```
+
+You can also override saved configuration with environment variables or env-name flags:
 
 ```bash
 THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" npx thinkfeel generate "Can we talk later?"
-npx thinkfeel generate "Can we talk later?" --api-key YOUR_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+npx thinkfeel generate "Can we talk later?" --api-key-env WORK_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
 ```
 
 ## Contributor Tests
