@@ -18,10 +18,10 @@ const usage = `Usage:
   thinkfeel personify "raw response" [options]
 
 Options:
-  --api-key-env <name>   Environment variable that contains the Curve API key.
-  --api-key-stdin        Read the Curve API key from stdin when using configure.
+  --api-key-env <name>   Environment variable that contains the ThinkFeel API key.
+  --api-key-stdin        Read the ThinkFeel API key from stdin when using configure.
   --profile <name>       Saved profile. Defaults to THINKFEEL_PROFILE or the active profile.
-  --persona-id <id>      Curve persona ID. Defaults to THINKFEEL_PERSONA_ID.
+  --persona-id <id>      ThinkFeel persona ID. Defaults to THINKFEEL_PERSONA_ID.
   --base-url <url>       API base URL. Defaults to THINKFEEL_BASE_URL or the SDK base URL.
   --name <name>           API key name when using login.
   --variations           Include reply variations and print JSON when using generate.
@@ -380,6 +380,23 @@ function openBrowser(url: string) {
   });
 }
 
+async function openLoginUrl(url: string) {
+  console.log(
+    [
+      'Logging in enables you to generate ThinkFeel API keys programmatically, save local profiles, and let coding agents use the CLI safely.',
+      '',
+      'Press Enter to login, or copy this URL:',
+      url,
+      '',
+    ].join('\n')
+  );
+
+  if (process.stdin.isTTY && process.stdout.isTTY) await promptVisible('Press Enter to login');
+  else console.log('Opening browser for ThinkFeel login...');
+
+  openBrowser(url);
+}
+
 function readRequestBody(request: http.IncomingMessage) {
   return new Promise<string>((resolve, reject) => {
     let body = '';
@@ -536,7 +553,7 @@ async function configure(values: CliValues) {
     apiKey = (await readStdin()).trim();
     apiKeyEnv = undefined;
   } else if (!apiKey && !apiKeyEnv && canPrompt) {
-    apiKey = (await promptHidden('Curve API key: ')).trim();
+    apiKey = (await promptHidden('ThinkFeel API key: ')).trim();
   }
 
   if (!personaId && canPrompt) personaId = (await promptVisible('Default ThinkFeel persona ID: ')).trim();
@@ -586,11 +603,11 @@ async function login(values: CliValues) {
   const loginUrl = new URL('/api/thinkfeel/cli/login', normalizedBaseUrl);
   loginUrl.searchParams.set('state', state);
   loginUrl.searchParams.set('name', keyName);
+  loginUrl.searchParams.set('source', 'cli');
   loginUrl.searchParams.set('redirect_uri', redirectUri);
   loginUrl.searchParams.set('recipient_public_key_jwk', base64urlJson(keyPair.publicJwk));
 
-  console.log('Opening browser for ThinkFeel login...');
-  openBrowser(loginUrl.toString());
+  await openLoginUrl(loginUrl.toString());
 
   const { encryptedApiKey } = await callbackPromise;
   const apiKey = await decryptEncryptedApiKey(keyPair.privateKey, encryptedApiKey);

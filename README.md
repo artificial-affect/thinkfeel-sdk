@@ -14,13 +14,13 @@ The package also installs a `thinkfeel` command. After installing:
 
 ```bash
 npx thinkfeel login
-npx thinkfeel configure
+npx thinkfeel login --persona-id YOUR_THINKFEEL_PERSONA_ID
 npx thinkfeel generate "I just got back from a long day and wanted to check in."
 npx thinkfeel generate "I just got back from a long day and wanted to check in." --variations
 npx thinkfeel personify "Thanks for reaching out. I can help with that. Send me the details when you have them."
 ```
 
-`thinkfeel login` opens the Playground sign-in flow in your browser, creates a new ThinkFeel API key for approved accounts, and saves it to the local CLI config without printing the key.
+`thinkfeel login` is the canonical setup command. It opens the Playground sign-in flow in your browser, requires an approved onboarding email, creates a new ThinkFeel API key, and saves it to the local CLI config without printing the key. Curve Labs staff provide persona IDs during onboarding; pass one with `--persona-id` or save it later with `thinkfeel configure`.
 
 `--variations` prints the full JSON response automatically so `replyChoices` are visible.
 
@@ -33,9 +33,9 @@ npx --package @curvelabs.org/thinkfeel thinkfeel configure
 For non-interactive setup:
 
 ```bash
-printf '%s\n' "$CURVE_API_KEY" | npx thinkfeel configure --api-key-stdin --persona-id YOUR_CURVE_PERSONA_ID
-npx thinkfeel configure --api-key-env CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
-npx thinkfeel login --persona-id YOUR_CURVE_PERSONA_ID
+printf '%s\n' "$THINKFEEL_API_KEY" | npx thinkfeel configure --api-key-stdin --persona-id YOUR_THINKFEEL_PERSONA_ID
+npx thinkfeel configure --api-key-env THINKFEEL_API_KEY --persona-id YOUR_THINKFEEL_PERSONA_ID
+npx thinkfeel login --persona-id YOUR_THINKFEEL_PERSONA_ID
 ```
 
 To inspect or remove saved CLI configuration:
@@ -48,7 +48,8 @@ npx thinkfeel configure --clear
 The CLI supports multiple saved profiles:
 
 ```bash
-npx thinkfeel configure --profile work --api-key-env WORK_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+npx thinkfeel login --profile work --persona-id YOUR_THINKFEEL_PERSONA_ID
+npx thinkfeel configure --profile work --api-key-env WORK_THINKFEEL_API_KEY --persona-id YOUR_THINKFEEL_PERSONA_ID
 npx thinkfeel use work
 npx thinkfeel profiles
 ```
@@ -56,8 +57,8 @@ npx thinkfeel profiles
 You can also override saved configuration with environment variables or env-name flags:
 
 ```bash
-THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" npx thinkfeel generate "Can we talk later?"
-npx thinkfeel generate "Can we talk later?" --api-key-env WORK_CURVE_API_KEY --persona-id YOUR_CURVE_PERSONA_ID
+THINKFEEL_API_KEY="YOUR_THINKFEEL_API_KEY" THINKFEEL_PERSONA_ID="YOUR_THINKFEEL_PERSONA_ID" npx thinkfeel generate "Can we talk later?"
+npx thinkfeel generate "Can we talk later?" --api-key-env WORK_THINKFEEL_API_KEY --persona-id YOUR_THINKFEEL_PERSONA_ID
 ```
 
 ## Contributor Tests
@@ -65,8 +66,8 @@ npx thinkfeel generate "Can we talk later?" --api-key-env WORK_CURVE_API_KEY --p
 From a cloned repo, tests require real API config.
 
 ```bash
-THINKFEEL_API_KEY="YOUR_CURVE_API_KEY" \
-THINKFEEL_PERSONA_ID="YOUR_CURVE_PERSONA_ID" \
+THINKFEEL_API_KEY="YOUR_THINKFEEL_API_KEY" \
+THINKFEEL_PERSONA_ID="YOUR_THINKFEEL_PERSONA_ID" \
 THINKFEEL_BASE_URL="https://playground.curvelabs.org" \
 npm test
 ```
@@ -93,8 +94,8 @@ THINKFEEL_PERSONIFY_RAW="Thanks for reaching out. Send me the details when you h
 import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
 const thinkFeel = new ThinkFeel({
-  apiKey: 'YOUR_CURVE_API_KEY',
-  personaId: 'YOUR_CURVE_PERSONA_ID',
+  apiKey: 'YOUR_THINKFEEL_API_KEY',
+  personaId: 'YOUR_THINKFEEL_PERSONA_ID',
 });
 
 const response = await thinkFeel.generate({
@@ -233,7 +234,7 @@ new ThinkFeel(config: ThinkFeelConfig)
 
 **Parameters:**
 
-- `config.apiKey` (string, required): Your Curve API key
+- `config.apiKey` (string, required): Your ThinkFeel API key
 - `config.personaId` (string, required): The persona ID to use
 - `config.baseUrl` (string, optional): Custom API base URL (defaults to `https://playground.curvelabs.org`)
 
@@ -280,7 +281,7 @@ Request body:
 
 ```json
 {
-  "personaId": "YOUR_CURVE_PERSONA_ID",
+  "personaId": "YOUR_THINKFEEL_PERSONA_ID",
   "messages": [{ "role": "user", "content": "Can we talk later?" }],
   "includeVariations": false
 }
@@ -307,7 +308,7 @@ Request body:
 
 ```json
 {
-  "personaId": "YOUR_CURVE_PERSONA_ID",
+  "personaId": "YOUR_THINKFEEL_PERSONA_ID",
   "raw": "Thanks for reaching out. Send me the details when you have them."
 }
 ```
