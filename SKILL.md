@@ -11,9 +11,10 @@ Use this skill when a project needs ThinkFeel API access through `@curvelabs.org
 
 - Never ask the user to paste an API key into chat.
 - Never print, quote, summarize, or inspect secret values from `.env*` or ThinkFeel config files.
-- Prefer `thinkfeel login` for approved Playground users. It opens browser sign-in, creates a key, and stores it locally without printing plaintext.
+- Prefer `thinkfeel login` for approved Playground users. It opens browser sign-in, creates a key, saves a local profile, and never prints plaintext.
+- Persona IDs are provisioned manually during onboarding. Use the persona ID the user already has; do not invent or generate one.
 - If `thinkfeel login` is unavailable, ask before using `thinkfeel configure` or editing an env file.
-- Use `THINKFEEL_API_KEY`, `THINKFEEL_PERSONA_ID`, and `THINKFEEL_BASE_URL` only when the project already documents those env vars or the user explicitly requests env-based setup.
+- Native ThinkFeel projects use `THINKFEEL_API_KEY`, `THINKFEEL_PERSONA_ID`, and optionally `THINKFEEL_BASE_URL`.
 
 ## Setup
 
@@ -35,6 +36,12 @@ If a project needs a default persona for CLI calls:
 
 ```bash
 npx thinkfeel login --persona-id <persona_id>
+```
+
+Use named profiles when the user wants multiple local workspaces or customer contexts:
+
+```bash
+npx thinkfeel login --profile <profile_name> --persona-id <persona_id>
 ```
 
 4. Verify configuration without exposing secrets:
