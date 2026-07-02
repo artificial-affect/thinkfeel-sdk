@@ -3,7 +3,7 @@
  */
 export interface ThinkFeelConfig {
   /**
-   * Your Curve API key
+   * Your ThinkFeel API key
    */
   apiKey: string;
 
