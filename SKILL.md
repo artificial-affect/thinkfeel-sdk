@@ -11,6 +11,7 @@ Use this skill when a project needs ThinkFeel API access through `@curvelabs.org
 
 - Never ask the user to paste an API key into chat.
 - Never print, quote, summarize, or inspect secret values from `.env*` or ThinkFeel config files.
+- If the ThinkFeel Plugin is installed in Codex or Claude Code, prefer its Playground API-key credential gate for project env-file setup.
 - Prefer `thinkfeel login` for approved Playground users. It opens browser sign-in, creates a key, saves a local profile, and never prints plaintext.
 - Persona IDs are provisioned manually during onboarding. Use the persona ID the user already has; do not invent or generate one.
 - If `thinkfeel login` is unavailable, ask before using `thinkfeel configure` or editing an env file.
