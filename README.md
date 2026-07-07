@@ -22,6 +22,8 @@ npx thinkfeel personify "Thanks for reaching out. I can help with that. Send me 
 
 `thinkfeel login` is the canonical setup command. It opens the Playground sign-in flow in your browser, requires an approved onboarding email, creates a new ThinkFeel API key, and saves it to the local CLI config without printing the key. Curve Labs staff provide persona IDs during onboarding; pass one with `--persona-id` or save it later with `thinkfeel configure`.
 
+For Codex or Claude Code, use the ThinkFeel Plugin documented at `https://docs.curvelabs.org/cli-agents`. It confirms a local env-file destination and writes `THINKFEEL_API_KEY` without exposing plaintext in chat.
+
 `--variations` prints the full JSON response automatically so `replyChoices` are visible.
 
 For one-off usage without installing first:
