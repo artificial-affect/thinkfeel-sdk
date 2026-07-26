@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import path from 'node:path';
 import http from 'node:http';
+import path from 'node:path';
 import { ThinkFeel } from './client';
 import readline from 'node:readline';
 import { parseArgs } from 'node:util';
 import { homedir, platform } from 'node:os';
 import { execFile } from 'node:child_process';
-import { randomUUID, webcrypto } from 'node:crypto';
+import { webcrypto, randomUUID } from 'node:crypto';
 import { rm, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const usage = `Usage:
@@ -30,8 +30,7 @@ Options:
   --clear                Delete saved configuration when using configure.
   -h, --help             Show this help message.`;
 
-const setupGuidance =
-  'Run "thinkfeel login", run "thinkfeel configure", or set THINKFEEL_API_KEY and THINKFEEL_PERSONA_ID.';
+const setupGuidance = 'Run "thinkfeel login", run "thinkfeel configure", or set THINKFEEL_API_KEY and THINKFEEL_PERSONA_ID.';
 const commands = new Set(['configure', 'login', 'profiles', 'use', 'generate', 'personify']);
 const defaultBaseUrl = 'https://playground.curvelabs.org';
 const encryptedApiKeyVersion = 1;
@@ -81,8 +80,8 @@ function normalizeProfileConfig(rawConfig: unknown): ProfileConfig {
   const config = rawConfig as ProfileConfig;
   return {
     apiKey: typeof config.apiKey === 'string' ? config.apiKey : undefined,
-    apiKeyEnv: typeof config.apiKeyEnv === 'string' ? config.apiKeyEnv : undefined,
     baseUrl: typeof config.baseUrl === 'string' ? config.baseUrl : undefined,
+    apiKeyEnv: typeof config.apiKeyEnv === 'string' ? config.apiKeyEnv : undefined,
     personaId: typeof config.personaId === 'string' ? config.personaId : undefined,
   };
 }
@@ -120,9 +119,9 @@ function normalizeConfig(rawConfig: unknown): CliConfig {
     }
 
     return {
+      profiles,
       version: 2,
       activeProfile: normalizeProfileName(config.activeProfile),
-      profiles,
     };
   }
 
@@ -362,11 +361,7 @@ async function decryptEncryptedApiKey(privateKey: CryptoKey, encryptedApiKey: En
   if (encryptedApiKey.version !== encryptedApiKeyVersion) throw new Error('Unsupported encrypted API key version.');
   if (typeof encryptedApiKey.ciphertext !== 'string') throw new Error('Missing encrypted API key ciphertext.');
 
-  const plaintext = await subtle.decrypt(
-    { name: 'RSA-OAEP' },
-    privateKey,
-    base64urlToBytes(encryptedApiKey.ciphertext)
-  );
+  const plaintext = await subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, base64urlToBytes(encryptedApiKey.ciphertext));
 
   return new TextDecoder().decode(plaintext);
 }
@@ -451,10 +446,13 @@ function startLoginCallbackServer(state: string) {
         }
       });
 
-      const timeout = setTimeout(() => {
-        server.close();
-        rejectCallback(new Error('Timed out waiting for browser login.'));
-      }, 5 * 60 * 1000);
+      const timeout = setTimeout(
+        () => {
+          server.close();
+          rejectCallback(new Error('Timed out waiting for browser login.'));
+        },
+        5 * 60 * 1000
+      );
 
       server.on('close', () => clearTimeout(timeout));
       server.on('error', error => {
@@ -627,22 +625,22 @@ async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
-      apiKey: { type: 'string' },
-      apiKeyEnv: { type: 'string' },
-      apiKeyStdin: { type: 'boolean', default: false },
-      baseUrl: { type: 'string' },
-      'api-key': { type: 'string' },
-      'api-key-env': { type: 'string' },
-      'api-key-stdin': { type: 'boolean', default: false },
       name: { type: 'string' },
+      apiKey: { type: 'string' },
+      baseUrl: { type: 'string' },
+      profile: { type: 'string' },
+      apiKeyEnv: { type: 'string' },
+      'api-key': { type: 'string' },
       personaId: { type: 'string' },
       'base-url': { type: 'string' },
       'persona-id': { type: 'string' },
-      profile: { type: 'string' },
+      'api-key-env': { type: 'string' },
       json: { type: 'boolean', default: false },
       show: { type: 'boolean', default: false },
       clear: { type: 'boolean', default: false },
       variations: { type: 'boolean', default: false },
+      apiKeyStdin: { type: 'boolean', default: false },
+      'api-key-stdin': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   });
