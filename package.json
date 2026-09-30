@@ -1,19 +1,12 @@
 {
-  "name": "@curvelabs.org/thinkfeel",
-  "version": "0.1.6",
-  "description": "Official SDK for Curve ThinkFeel API",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "bin": { "thinkfeel": "dist/cli.js" },
   "files": [
     "dist",
     "SKILL.md"
   ],
-  "engines": { "node": ">=18" },
   "scripts": {
-    "build": "tsc && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "prepublishOnly": "npm test",
     "test": "bash scripts/index.sh",
-    "prepublishOnly": "npm test"
+    "build": "tsc && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\""
   },
   "keywords": [
     "curve",
@@ -22,8 +15,15 @@
     "sdk",
     "cli"
   ],
-  "author": "Curve Labs",
   "license": "MIT",
-  "devDependencies": { "typescript": "^5.7.3", "@types/node": "^20" },
+  "version": "0.1.6",
+  "author": "Curve Labs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": { "node": ">=18" },
+  "name": "@curvelabs.org/thinkfeel",
+  "bin": { "thinkfeel": "dist/cli.js" },
+  "description": "Official SDK for Curve ThinkFeel API",
+  "devDependencies": { "@types/node": "^20", "typescript": "^5.7.3" },
   "repository": { "type": "git", "url": "git+https://github.com/artificial-affect/thinkfeel-sdk.git" }
 }
