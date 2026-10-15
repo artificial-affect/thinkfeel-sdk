@@ -55,7 +55,6 @@ Tests call the live API and require credentials:
 
 ```bash
 cp .env.local.example .env.local
-# Edit .env.local with real values.
 npm test
 ```
 

@@ -111,17 +111,10 @@ const response = await thinkFeel.generate({
 });
 
 console.log(response.finalReply);
-// => "I'm here. Want to tell me what happened?"
 
 console.log(response.chunks);
-// => ["I'm here.", "Want to tell me what happened?"]
 
 console.log(response.replyChoices);
-// => [
-//   "I'm here. Want to tell me what happened?",
-//   "Long day? Tell me everything.",
-//   "Of course. What happened?"
-// ]
 ```
 
 ## Usage
@@ -134,8 +127,6 @@ import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 const thinkFeel = new ThinkFeel({
   apiKey: 'your-api-key',
   personaId: 'your-persona-id',
-  // Optional: specify a custom base URL
-  // baseUrl: "https://custom-domain.com"
 });
 ```
 
@@ -190,9 +181,9 @@ const response = await thinkFeel.generate({
   includeVariations: true,
 });
 
-console.log(response.finalReply); // The selected best reply
-console.log(response.chunks); // Message-ready chunks for display or chat delivery
-console.log(response.replyChoices); // Array of all variations
+console.log(response.finalReply);
+console.log(response.chunks);
+console.log(response.replyChoices);
 ```
 
 ### Personify Text
@@ -216,10 +207,6 @@ const response = await thinkFeel.generate({
 });
 
 console.log(response.rateLimits);
-// => [
-//   { limit: "requests_per_minute", remaining: 58 },
-//   { limit: "requests_per_day", remaining: 998 }
-// ]
 ```
 
 ## API Reference

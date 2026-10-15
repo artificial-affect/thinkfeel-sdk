@@ -165,7 +165,6 @@ async function writeSavedConfig(config: CliConfig) {
     await chmod(configDir, 0o700);
     await chmod(configPath, 0o600);
   } catch {
-    // Some filesystems do not support POSIX permissions.
   }
 }
 
