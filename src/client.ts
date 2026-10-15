@@ -101,18 +101,11 @@ async function readApiError(response: Response) {
   return fallback;
 }
 
-/**
- * ThinkFeel SDK Client
- */
 export class ThinkFeel {
   private apiKey: string;
   private personaId: string;
   private baseUrl: string;
 
-  /**
-   * Initialize a new ThinkFeel client
-   * @param config - Configuration options
-   */
   constructor(config: ThinkFeelConfig) {
     if (!isRecord(config)) throw new Error('config object is required');
 
@@ -138,11 +131,6 @@ export class ThinkFeel {
     return (await response.json()) as ResponseBody;
   }
 
-  /**
-   * Generate a response based on the conversation messages
-   * @param options - Generation options
-   * @returns Promise with the generated response
-   */
   async generate(options: GenerateOptions): Promise<GenerateResponse> {
     if (!isRecord(options)) throw new Error('options object is required');
 
@@ -172,11 +160,6 @@ export class ThinkFeel {
     }
   }
 
-  /**
-   * Personify a raw base response in the configured persona voice
-   * @param options - Personification options
-   * @returns Promise with the personified response
-   */
   async personify(options: PersonifyOptions): Promise<PersonifyResponse> {
     if (!isRecord(options)) throw new Error('options object is required');
 
