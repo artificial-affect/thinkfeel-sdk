@@ -623,7 +623,6 @@ async function login(values: CliValues) {
 
 async function main() {
   const { values, positionals } = parseArgs({
-    allowPositionals: true,
     options: {
       name: { type: 'string' },
       apiKey: { type: 'string' },
@@ -643,6 +642,7 @@ async function main() {
       'api-key-stdin': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
+    allowPositionals: true,
   });
 
   const command = positionals[0];
