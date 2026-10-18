@@ -164,8 +164,7 @@ async function writeSavedConfig(config: CliConfig) {
   try {
     await chmod(configDir, 0o700);
     await chmod(configPath, 0o600);
-  } catch {
-  }
+  } catch {}
 }
 
 const clearSavedConfig = async () => await rm(getConfigPath(), { force: true });
