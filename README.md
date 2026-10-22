@@ -313,64 +313,7 @@ Response body:
 
 ## Types
 
-### `Message`
-
-```typescript
-type MessageRole = 'user' | 'assistant' | 'system' | 'developer';
-
-interface MessageTextPart {
-  type: 'text';
-  text: string;
-}
-
-type MessageContent = string | MessageTextPart[];
-
-interface Message {
-  role: MessageRole;
-  content: MessageContent;
-  timestamp?: number | string;
-  createdAt?: number | string;
-  created_at?: number | string;
-}
-```
-
-### `GenerateResponse`
-
-```typescript
-interface GenerateResponse {
-  finalReply: string;
-  chunks: string[];
-  replyChoices?: string[];
-  status: string;
-  rateLimits?: RateLimit[];
-}
-```
-
-### `PersonifyOptions`
-
-```typescript
-interface PersonifyOptions {
-  raw: string;
-}
-```
-
-### `PersonifyResponse`
-
-```typescript
-interface PersonifyResponse {
-  personified: string;
-  chunks: string[];
-}
-```
-
-### `RateLimit`
-
-```typescript
-interface RateLimit {
-  limit: string;
-  remaining: number | null;
-}
-```
+Type definitions are maintained in [`src/types.ts`](src/types.ts).
 
 ## Error Handling
 
