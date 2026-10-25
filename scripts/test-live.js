@@ -234,7 +234,7 @@ async function testInstalledCli(config) {
         runCli(appDir, withoutRuntimeCredentials(path.join(tempDir, 'config-argv-reject'), npmCacheDir), [
           'generate',
           '--api-key',
-          config.apiKey,
+          'test-argv-rejection-key',
           '--persona-id',
           config.personaId,
           config.generatePrompt,
