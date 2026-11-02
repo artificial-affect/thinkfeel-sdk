@@ -29,17 +29,12 @@ function requireText(value: unknown, name: string) {
 }
 
 function normalizeBaseUrl(baseUrl: string | undefined) {
-  if (!baseUrl) return DEFAULT_BASE_URL;
-
-  const trimmed = baseUrl.trim();
-  if (!trimmed) return DEFAULT_BASE_URL;
-
-  return trimmed.replace(/\/+$/, '');
+  const trimmed = baseUrl && baseUrl.trim();
+  return trimmed ? trimmed.replace(/\/+$/, '') : DEFAULT_BASE_URL;
 }
 
 function normalizeRole(role: unknown) {
-  if (typeof role !== 'string') return '';
-  return role.toLowerCase();
+  return typeof role === 'string' ? role.toLowerCase() : '';
 }
 
 function validateMessageContent(content: unknown, messageIndex: number) {
@@ -53,9 +48,8 @@ function validateMessageContent(content: unknown, messageIndex: number) {
     if (!isRecord(part)) throw new Error(`messages[${messageIndex}].content[${partIndex}] must be an object`);
     if (part.type !== 'text') throw new Error(`messages[${messageIndex}].content[${partIndex}].type must be "text"`);
 
-    if (typeof part.text !== 'string') {
+    if (typeof part.text !== 'string')
       throw new Error(`messages[${messageIndex}].content[${partIndex}].text must be a string`);
-    }
   });
 }
 
@@ -87,13 +81,8 @@ async function readApiError(response: Response) {
   try {
     const errorData = JSON.parse(text) as ThinkFeelError;
 
-    if (typeof errorData.message === 'string' && errorData.message) {
-      return errorData.message;
-    }
-
-    if (typeof errorData.error === 'string' && errorData.error) {
-      return errorData.error;
-    }
+    if (typeof errorData.message === 'string' && errorData.message) return errorData.message;
+    if (typeof errorData.error === 'string' && errorData.error) return errorData.error;
   } catch {
     return text;
   }
@@ -115,20 +104,22 @@ export class ThinkFeel {
   }
 
   private async postJson<ResponseBody>(path: string, body: unknown): Promise<ResponseBody> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-      headers: {
-        'x-api-key': this.apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
+    try {
+      const response = await fetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: {
+          'x-api-key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(await readApiError(response));
+      if (!response.ok) throw new Error(await readApiError(response));
+      return (await response.json()) as ResponseBody;
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error('An unexpected error occurred');
     }
-
-    return (await response.json()) as ResponseBody;
   }
 
   async generate(options: GenerateOptions): Promise<GenerateResponse> {
@@ -140,24 +131,19 @@ export class ThinkFeel {
       throw new Error('includeVariations must be a boolean');
     }
 
-    try {
-      const data = await this.postJson<GenerateApiResponse>('/api/v1/generate', {
-        messages,
-        personaId: this.personaId,
-        includeVariations: options.includeVariations === true,
-      });
+    const data = await this.postJson<GenerateApiResponse>('/api/v1/generate', {
+      messages,
+      personaId: this.personaId,
+      includeVariations: options.includeVariations === true,
+    });
 
-      return {
-        status: data.status,
-        rateLimits: data.rateLimits,
-        chunks: data.result?.chunks || [],
-        replyChoices: data.result?.replyChoices,
-        finalReply: data.result?.finalReply || '',
-      };
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      throw new Error('An unexpected error occurred');
-    }
+    return {
+      status: data.status,
+      rateLimits: data.rateLimits,
+      chunks: data.result?.chunks || [],
+      replyChoices: data.result?.replyChoices,
+      finalReply: data.result?.finalReply || '',
+    };
   }
 
   async personify(options: PersonifyOptions): Promise<PersonifyResponse> {
@@ -165,16 +151,11 @@ export class ThinkFeel {
 
     const raw = requireText(options.raw, 'raw string');
 
-    try {
-      const data = await this.postJson<PersonifyApiResponse>('/api/v1/personify', { raw, personaId: this.personaId });
+    const data = await this.postJson<PersonifyApiResponse>('/api/v1/personify', { raw, personaId: this.personaId });
 
-      return {
-        chunks: data.chunks || [],
-        personified: data.personified || '',
-      };
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      throw new Error('An unexpected error occurred');
-    }
+    return {
+      chunks: data.chunks || [],
+      personified: data.personified || '',
+    };
   }
 }

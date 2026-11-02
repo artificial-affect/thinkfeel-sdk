@@ -49,9 +49,7 @@ function getStringOption(values: CliValues, kebabName: string, camelName: string
   if (typeof kebabValue === 'string') return kebabValue;
 
   const camelValue = values[camelName];
-  if (typeof camelValue === 'string') return camelValue;
-
-  return undefined;
+  return typeof camelValue === 'string' ? camelValue : undefined;
 }
 
 function getBooleanOption(values: CliValues, kebabName: string, camelName: string) {
@@ -177,7 +175,7 @@ function maskSecret(secret: string | undefined) {
 
 function resolveProfileName(values: CliValues, config: CliConfig) {
   const flagProfile = getStringOption(values, 'profile', 'profile');
-  return normalizeProfileName(flagProfile ?? process.env.THINKFEEL_PROFILE ?? config.activeProfile ?? defaultProfileName);
+  return normalizeProfileName(flagProfile ?? process.env.THINKFEEL_PROFILE ?? config.activeProfile);
 }
 
 function getProfileConfig(config: CliConfig, profileName: string) {
@@ -236,19 +234,10 @@ function readStdin() {
   });
 }
 
-function readEnvApiKey(envName: string, options?: { required?: boolean }) {
+function readEnvApiKey(envName: string) {
   const apiKey = process.env[envName]?.trim();
-  if (apiKey) return apiKey;
-  if (options?.required) throw new Error(`${envName} is not set.`);
-  return undefined;
-}
-
-function ensureNoArgvApiKey(values: CliValues) {
-  if (getStringOption(values, 'api-key', 'apiKey') === undefined) return;
-
-  throw new Error(
-    'Passing API keys with --api-key is not supported because argv can leak through shell history and process lists. Use "thinkfeel login", THINKFEEL_API_KEY, --api-key-env, or "thinkfeel configure --api-key-stdin".'
-  );
+  if (!apiKey) throw new Error(`${envName} is not set.`);
+  return apiKey;
 }
 
 function promptVisible(question: string) {
@@ -319,16 +308,7 @@ function requireInput(command: string, input: string) {
 }
 
 function formatChunks(chunks: string[], fallback: string) {
-  if (chunks.length > 0) return chunks.join('\n');
-  return fallback;
-}
-
-function base64urlJson(value: unknown) {
-  return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
-}
-
-function base64urlToBytes(value: string) {
-  return Buffer.from(value, 'base64url');
+  return chunks.length > 0 ? chunks.join('\n') : fallback;
 }
 
 function minimalPublicJwk(publicJwk: JsonWebKey) {
@@ -359,7 +339,11 @@ async function decryptEncryptedApiKey(privateKey: CryptoKey, encryptedApiKey: En
   if (encryptedApiKey.version !== encryptedApiKeyVersion) throw new Error('Unsupported encrypted API key version.');
   if (typeof encryptedApiKey.ciphertext !== 'string') throw new Error('Missing encrypted API key ciphertext.');
 
-  const plaintext = await subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, base64urlToBytes(encryptedApiKey.ciphertext));
+  const plaintext = await subtle.decrypt(
+    { name: 'RSA-OAEP' },
+    privateKey,
+    Buffer.from(encryptedApiKey.ciphertext, 'base64url')
+  );
 
   return new TextDecoder().decode(plaintext);
 }
@@ -414,7 +398,7 @@ function startLoginCallbackServer(state: string) {
     rejectCallback = reject;
   });
 
-  const serverReady = new Promise<{ callbackPromise: Promise<{ encryptedApiKey: EncryptedApiKey }>; redirectUri: string }>(
+  return new Promise<{ callbackPromise: Promise<{ encryptedApiKey: EncryptedApiKey }>; redirectUri: string }>(
     (resolve, reject) => {
       const server = http.createServer(async (request, response) => {
         try {
@@ -471,8 +455,6 @@ function startLoginCallbackServer(state: string) {
       });
     }
   );
-
-  return serverReady;
 }
 
 async function resolveRuntimeProfileConfig(values: CliValues): Promise<ProfileConfig> {
@@ -484,8 +466,8 @@ async function resolveRuntimeProfileConfig(values: CliValues): Promise<ProfileCo
   const processApiKey = process.env.THINKFEEL_API_KEY?.trim();
   let apiKey = processApiKey || profileConfig.apiKey;
 
-  if (flagApiKeyEnv) apiKey = readEnvApiKey(flagApiKeyEnv, { required: true });
-  else if (!processApiKey && profileConfig.apiKeyEnv) apiKey = readEnvApiKey(profileConfig.apiKeyEnv, { required: true });
+  if (flagApiKeyEnv) apiKey = readEnvApiKey(flagApiKeyEnv);
+  else if (!processApiKey && profileConfig.apiKeyEnv) apiKey = readEnvApiKey(profileConfig.apiKeyEnv);
 
   return {
     apiKey,
@@ -500,25 +482,19 @@ async function configure(values: CliValues) {
   const profileName = resolveProfileName(values, savedConfig);
 
   if (values.clear) {
-    if (getStringOption(values, 'profile', 'profile')) {
-      const nextProfiles = { ...savedConfig.profiles };
-      delete nextProfiles[profileName];
+    const nextProfiles = { ...savedConfig.profiles };
+    delete nextProfiles[profileName];
 
-      if (Object.keys(nextProfiles).length < 1) {
-        await clearSavedConfig();
-        console.log(`Deleted ThinkFeel config at ${getConfigPath()}`);
-        return;
-      }
-
-      const activeProfile =
-        savedConfig.activeProfile === profileName ? Object.keys(nextProfiles).sort()[0] : savedConfig.activeProfile;
-      await writeSavedConfig({ ...savedConfig, activeProfile, profiles: nextProfiles });
-      console.log(`Deleted ThinkFeel profile "${profileName}" at ${getConfigPath()}`);
+    if (!getStringOption(values, 'profile', 'profile') || Object.keys(nextProfiles).length < 1) {
+      await clearSavedConfig();
+      console.log(`Deleted ThinkFeel config at ${getConfigPath()}`);
       return;
     }
 
-    await clearSavedConfig();
-    console.log(`Deleted ThinkFeel config at ${getConfigPath()}`);
+    const activeProfile =
+      savedConfig.activeProfile === profileName ? Object.keys(nextProfiles).sort()[0] : savedConfig.activeProfile;
+    await writeSavedConfig({ ...savedConfig, activeProfile, profiles: nextProfiles });
+    console.log(`Deleted ThinkFeel profile "${profileName}" at ${getConfigPath()}`);
     return;
   }
 
@@ -554,9 +530,7 @@ async function configure(values: CliValues) {
 
   if (!personaId && canPrompt) personaId = (await promptVisible('Default ThinkFeel persona ID: ')).trim();
 
-  if (baseUrl === undefined && canPrompt) {
-    baseUrl = (await promptVisible('Base URL (optional): ')).trim();
-  }
+  if (baseUrl === undefined && canPrompt) baseUrl = (await promptVisible('Base URL (optional): ')).trim();
 
   if (!apiKey && !apiKeyEnv) throw new Error('Missing API key. Use --api-key-env, --api-key-stdin, or thinkfeel login.');
   if (!personaId) throw new Error('Missing persona ID.');
@@ -569,10 +543,6 @@ async function configure(values: CliValues) {
   await writeSavedConfig(setProfileConfig(savedConfig, profileName, nextProfile));
 
   console.log(`Saved ThinkFeel profile "${profileName}" at ${getConfigPath()}`);
-}
-
-async function listProfiles() {
-  printProfiles(await readSavedConfig());
 }
 
 async function useProfile(profileNameRaw: string | undefined) {
@@ -601,7 +571,10 @@ async function login(values: CliValues) {
   loginUrl.searchParams.set('name', keyName);
   loginUrl.searchParams.set('source', 'cli');
   loginUrl.searchParams.set('redirect_uri', redirectUri);
-  loginUrl.searchParams.set('recipient_public_key_jwk', base64urlJson(keyPair.publicJwk));
+  loginUrl.searchParams.set(
+    'recipient_public_key_jwk',
+    Buffer.from(JSON.stringify(keyPair.publicJwk), 'utf8').toString('base64url')
+  );
 
   await openLoginUrl(loginUrl.toString());
 
@@ -650,29 +623,17 @@ async function main() {
     return;
   }
 
-  ensureNoArgvApiKey(values);
-
-  if (command === 'login') {
-    await login(values);
-    return;
+  if (getStringOption(values, 'api-key', 'apiKey') !== undefined) {
+    throw new Error(
+      'Passing API keys with --api-key is not supported because argv can leak through shell history and process lists. Use "thinkfeel login", THINKFEEL_API_KEY, --api-key-env, or "thinkfeel configure --api-key-stdin".'
+    );
   }
 
+  if (command === 'login') return login(values);
   if (!commands.has(command)) throw new Error(`Unknown command: ${command}.\n\n${usage}`);
-
-  if (command === 'configure') {
-    await configure(values);
-    return;
-  }
-
-  if (command === 'profiles') {
-    await listProfiles();
-    return;
-  }
-
-  if (command === 'use') {
-    await useProfile(positionals[1]);
-    return;
-  }
+  if (command === 'configure') return configure(values);
+  if (command === 'profiles') return printProfiles(await readSavedConfig());
+  if (command === 'use') return useProfile(positionals[1]);
 
   const { apiKey, baseUrl, personaId } = await resolveRuntimeProfileConfig(values);
   if (!apiKey || !personaId) throw new Error(setupGuidance);
