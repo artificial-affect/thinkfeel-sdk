@@ -40,9 +40,7 @@ function summarizeGenerate(response) {
   console.log(`    chunks: ${response.chunks.length}`);
   console.log(`    finalReply: ${snippet(response.finalReply)}`);
 
-  if (response.replyChoices) {
-    console.log(`    replyChoices: ${response.replyChoices.length}`);
-  }
+  if (response.replyChoices) console.log(`    replyChoices: ${response.replyChoices.length}`);
 }
 
 function summarizePersonify(response) {
@@ -249,7 +247,7 @@ async function testInstalledCli(config) {
     step('CLI generate using environment variables');
     const envGenerate = await runCli(
       appDir,
-      cliEnv(config, { THINKFEEL_CONFIG_DIR: envOnlyConfigDir, npm_config_cache: npmCacheDir }),
+      cliEnv(config, { npm_config_cache: npmCacheDir, THINKFEEL_CONFIG_DIR: envOnlyConfigDir }),
       ['generate', config.generatePrompt]
     );
     assertNonEmptyString(envGenerate.stdout, 'CLI env generate stdout');
@@ -457,7 +455,7 @@ async function testInstalledCli(config) {
     passed('Live installed CLI tests');
   } finally {
     step('Remove temporary package install workspace');
-    await rm(tempDir, { recursive: true, force: true });
+    await rm(tempDir, { force: true, recursive: true });
     passed('Removed temporary package install workspace');
   }
 }

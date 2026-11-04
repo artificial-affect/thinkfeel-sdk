@@ -40,9 +40,8 @@ function normalizeRole(role: unknown) {
 function validateMessageContent(content: unknown, messageIndex: number) {
   if (content === null || content === undefined || typeof content === 'string') return;
 
-  if (!Array.isArray(content)) {
+  if (!Array.isArray(content))
     throw new Error(`messages[${messageIndex}].content must be a string or an array of text parts`);
-  }
 
   content.forEach((part, partIndex) => {
     if (!isRecord(part)) throw new Error(`messages[${messageIndex}].content[${partIndex}] must be an object`);
@@ -54,9 +53,7 @@ function validateMessageContent(content: unknown, messageIndex: number) {
 }
 
 function validateMessages(messages: unknown): Message[] {
-  if (!Array.isArray(messages) || messages.length === 0) {
-    throw new Error('messages array is required and must not be empty');
-  }
+  if (!Array.isArray(messages) || messages.length === 0) throw new Error('messages array is required and must not be empty');
 
   messages.forEach((message, index) => {
     if (!isRecord(message)) throw new Error(`messages[${index}] must be an object`);
@@ -108,10 +105,7 @@ export class ThinkFeel {
       const response = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         body: JSON.stringify(body),
-        headers: {
-          'x-api-key': this.apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'x-api-key': this.apiKey, 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) throw new Error(await readApiError(response));
@@ -127,9 +121,8 @@ export class ThinkFeel {
 
     const messages = validateMessages(options.messages);
 
-    if (options.includeVariations !== undefined && typeof options.includeVariations !== 'boolean') {
+    if (options.includeVariations !== undefined && typeof options.includeVariations !== 'boolean')
       throw new Error('includeVariations must be a boolean');
-    }
 
     const data = await this.postJson<GenerateApiResponse>('/api/v1/generate', {
       messages,
@@ -153,9 +146,6 @@ export class ThinkFeel {
 
     const data = await this.postJson<PersonifyApiResponse>('/api/v1/personify', { raw, personaId: this.personaId });
 
-    return {
-      chunks: data.chunks || [],
-      personified: data.personified || '',
-    };
+    return { chunks: data.chunks || [], personified: data.personified || '' };
   }
 }

@@ -38,9 +38,9 @@ const defaultProfileName = 'default';
 const { subtle } = webcrypto;
 
 type CliValues = Record<string, string | boolean | undefined>;
-type ProfileConfig = { apiKey?: string; apiKeyEnv?: string; baseUrl?: string; personaId?: string };
+type ProfileConfig = { apiKey?: string; baseUrl?: string; apiKeyEnv?: string; personaId?: string };
 type CliConfig = { version: 2; activeProfile: string; profiles: Record<string, ProfileConfig> };
-type EncryptedApiKey = { ciphertext?: unknown; version?: unknown };
+type EncryptedApiKey = { version?: unknown; ciphertext?: unknown };
 type CryptoKey = webcrypto.CryptoKey;
 type JsonWebKey = webcrypto.JsonWebKey;
 
@@ -87,9 +87,8 @@ function normalizeProfileConfig(rawConfig: unknown): ProfileConfig {
 function normalizeProfileName(value: string | undefined) {
   const profileName = (value || defaultProfileName).trim();
   if (!profileName) throw new Error('Profile name is required.');
-  if (!/^[A-Za-z0-9._-]+$/.test(profileName)) {
+  if (!/^[A-Za-z0-9._-]+$/.test(profileName))
     throw new Error('Profile name can only contain letters, numbers, dots, underscores, and hyphens.');
-  }
 
   return profileName;
 }
@@ -103,9 +102,7 @@ function normalizeEnvName(value: string | undefined) {
 }
 
 function normalizeConfig(rawConfig: unknown): CliConfig {
-  if (!rawConfig || typeof rawConfig !== 'object') {
-    return { version: 2, activeProfile: defaultProfileName, profiles: {} };
-  }
+  if (!rawConfig || typeof rawConfig !== 'object') return { version: 2, profiles: {}, activeProfile: defaultProfileName };
 
   const config = rawConfig as Partial<CliConfig> & ProfileConfig;
   if (config.version === 2 && config.profiles && typeof config.profiles === 'object') {
@@ -116,11 +113,7 @@ function normalizeConfig(rawConfig: unknown): CliConfig {
       profiles[profileName] = normalizeProfileConfig(profileConfigRaw);
     }
 
-    return {
-      profiles,
-      version: 2,
-      activeProfile: normalizeProfileName(config.activeProfile),
-    };
+    return { profiles, version: 2, activeProfile: normalizeProfileName(config.activeProfile) };
   }
 
   const legacyProfile = normalizeProfileConfig(rawConfig);
@@ -143,9 +136,8 @@ async function readSavedConfig(): Promise<CliConfig> {
   } catch (error) {
     if (isNodeError(error) && error.code === 'ENOENT') return normalizeConfig(null);
 
-    if (error instanceof SyntaxError) {
+    if (error instanceof SyntaxError)
       throw new Error(`Invalid ThinkFeel config at ${configPath}. Run "thinkfeel configure --clear" and configure it again.`);
-    }
 
     throw error;
   }
@@ -183,11 +175,7 @@ function getProfileConfig(config: CliConfig, profileName: string) {
 }
 
 function setProfileConfig(config: CliConfig, profileName: string, profileConfig: ProfileConfig) {
-  return {
-    ...config,
-    activeProfile: profileName,
-    profiles: { ...config.profiles, [profileName]: profileConfig },
-  };
+  return { ...config, activeProfile: profileName, profiles: { ...config.profiles, [profileName]: profileConfig } };
 }
 
 function printConfig(config: CliConfig, profileName: string) {
@@ -312,21 +300,15 @@ function formatChunks(chunks: string[], fallback: string) {
 }
 
 function minimalPublicJwk(publicJwk: JsonWebKey) {
-  if (publicJwk.kty !== 'RSA' || !publicJwk.n || !publicJwk.e) {
+  if (publicJwk.kty !== 'RSA' || !publicJwk.n || !publicJwk.e)
     throw new Error('Generated keypair did not produce an RSA public JWK.');
-  }
 
   return { e: publicJwk.e, kty: 'RSA', n: publicJwk.n };
 }
 
 async function generateRecipientKeyPair() {
   const keyPair = await subtle.generateKey(
-    {
-      hash: 'SHA-256',
-      name: 'RSA-OAEP',
-      modulusLength: 4096,
-      publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-    },
+    { hash: 'SHA-256', name: 'RSA-OAEP', modulusLength: 4096, publicExponent: new Uint8Array([0x01, 0x00, 0x01]) },
     true,
     ['encrypt', 'decrypt']
   );
@@ -398,7 +380,7 @@ function startLoginCallbackServer(state: string) {
     rejectCallback = reject;
   });
 
-  return new Promise<{ callbackPromise: Promise<{ encryptedApiKey: EncryptedApiKey }>; redirectUri: string }>(
+  return new Promise<{ redirectUri: string; callbackPromise: Promise<{ encryptedApiKey: EncryptedApiKey }> }>(
     (resolve, reject) => {
       const server = http.createServer(async (request, response) => {
         try {
@@ -524,9 +506,7 @@ async function configure(values: CliValues) {
     if (process.stdin.isTTY) throw new Error('Pipe the API key to stdin when using --api-key-stdin.');
     apiKey = (await readStdin()).trim();
     apiKeyEnv = undefined;
-  } else if (!apiKey && !apiKeyEnv && canPrompt) {
-    apiKey = (await promptHidden('ThinkFeel API key: ')).trim();
-  }
+  } else if (!apiKey && !apiKeyEnv && canPrompt) apiKey = (await promptHidden('ThinkFeel API key: ')).trim();
 
   if (!personaId && canPrompt) personaId = (await promptVisible('Default ThinkFeel persona ID: ')).trim();
 
@@ -594,6 +574,7 @@ async function login(values: CliValues) {
 
 async function main() {
   const { values, positionals } = parseArgs({
+    allowPositionals: true,
     options: {
       name: { type: 'string' },
       apiKey: { type: 'string' },
@@ -605,15 +586,14 @@ async function main() {
       'base-url': { type: 'string' },
       'persona-id': { type: 'string' },
       'api-key-env': { type: 'string' },
-      json: { type: 'boolean', default: false },
-      show: { type: 'boolean', default: false },
-      clear: { type: 'boolean', default: false },
-      variations: { type: 'boolean', default: false },
-      apiKeyStdin: { type: 'boolean', default: false },
-      'api-key-stdin': { type: 'boolean', default: false },
-      help: { type: 'boolean', short: 'h', default: false },
+      json: { default: false, type: 'boolean' },
+      show: { default: false, type: 'boolean' },
+      clear: { default: false, type: 'boolean' },
+      variations: { default: false, type: 'boolean' },
+      apiKeyStdin: { default: false, type: 'boolean' },
+      'api-key-stdin': { default: false, type: 'boolean' },
+      help: { short: 'h', default: false, type: 'boolean' },
     },
-    allowPositionals: true,
   });
 
   const command = positionals[0];
@@ -623,11 +603,10 @@ async function main() {
     return;
   }
 
-  if (getStringOption(values, 'api-key', 'apiKey') !== undefined) {
+  if (getStringOption(values, 'api-key', 'apiKey') !== undefined)
     throw new Error(
       'Passing API keys with --api-key is not supported because argv can leak through shell history and process lists. Use "thinkfeel login", THINKFEEL_API_KEY, --api-key-env, or "thinkfeel configure --api-key-stdin".'
     );
-  }
 
   if (command === 'login') return login(values);
   if (!commands.has(command)) throw new Error(`Unknown command: ${command}.\n\n${usage}`);
