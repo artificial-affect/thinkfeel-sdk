@@ -95,18 +95,10 @@ THINKFEEL_PERSONIFY_RAW="Thanks for reaching out. Send me the details when you h
 ```typescript
 import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
-const thinkFeel = new ThinkFeel({
-  apiKey: 'YOUR_THINKFEEL_API_KEY',
-  personaId: 'YOUR_THINKFEEL_PERSONA_ID',
-});
+const thinkFeel = new ThinkFeel({ apiKey: 'YOUR_THINKFEEL_API_KEY', personaId: 'YOUR_THINKFEEL_PERSONA_ID' });
 
 const response = await thinkFeel.generate({
-  messages: [
-    {
-      role: 'user',
-      content: 'I just got back from a long day and wanted to check in.',
-    },
-  ],
+  messages: [{ role: 'user', content: 'I just got back from a long day and wanted to check in.' }],
   includeVariations: true,
 });
 
@@ -124,10 +116,7 @@ console.log(response.replyChoices);
 ```typescript
 import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
-const thinkFeel = new ThinkFeel({
-  apiKey: 'your-api-key',
-  personaId: 'your-persona-id',
-});
+const thinkFeel = new ThinkFeel({ apiKey: 'your-api-key', personaId: 'your-persona-id' });
 ```
 
 ### Generate a Response
@@ -135,9 +124,7 @@ const thinkFeel = new ThinkFeel({
 #### Simple Generation
 
 ```typescript
-const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'Can we talk later?' }],
-});
+const response = await thinkFeel.generate({ messages: [{ role: 'user', content: 'Can we talk later?' }] });
 
 console.log(response.finalReply);
 console.log(response.chunks);
@@ -202,9 +189,7 @@ console.log(personified.chunks);
 ### Check Rate Limits
 
 ```typescript
-const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'Are you around?' }],
-});
+const response = await thinkFeel.generate({ messages: [{ role: 'user', content: 'Are you around?' }] });
 
 console.log(response.rateLimits);
 ```
@@ -261,8 +246,7 @@ Rewrite an existing base response in the configured persona voice.
 
 ## Endpoint Contracts
 
-The SDK methods map directly to the public V1 endpoints.
-This SDK covers `/api/v1/generate` and `/api/v1/personify`; it does not wrap the OpenAI-compatible `/api/v1/completions` endpoint.
+The SDK methods map directly to the public V1 endpoints. This SDK covers `/api/v1/generate` and `/api/v1/personify`; it does not wrap the OpenAI-compatible `/api/v1/completions` endpoint.
 
 ### `POST /api/v1/generate`
 
@@ -282,10 +266,7 @@ Response body:
 {
   "status": "success",
   "rateLimits": [{ "limit": "requests_per_day", "remaining": 998 }],
-  "result": {
-    "finalReply": "Of course. Later works.",
-    "chunks": ["Of course.", "Later works."]
-  }
+  "result": { "finalReply": "Of course. Later works.", "chunks": ["Of course.", "Later works."] }
 }
 ```
 
@@ -296,10 +277,7 @@ When `includeVariations` is `true`, `result.replyChoices` is included when the A
 Request body:
 
 ```json
-{
-  "personaId": "YOUR_THINKFEEL_PERSONA_ID",
-  "raw": "Thanks for reaching out. Send me the details when you have them."
-}
+{ "personaId": "YOUR_THINKFEEL_PERSONA_ID", "raw": "Thanks for reaching out. Send me the details when you have them." }
 ```
 
 Response body:
@@ -319,9 +297,7 @@ Type definitions are maintained in [`src/types.ts`](src/types.ts).
 
 ```typescript
 try {
-  const response = await thinkFeel.generate({
-    messages: [{ role: 'user', content: 'Can we talk later?' }],
-  });
+  const response = await thinkFeel.generate({ messages: [{ role: 'user', content: 'Can we talk later?' }] });
   console.log(response.finalReply);
 } catch (error) {
   if (error instanceof Error) {

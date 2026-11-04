@@ -63,14 +63,9 @@ npx thinkfeel personify "Thanks for reaching out. Send me the details when you h
 ```typescript
 import { ThinkFeel } from '@curvelabs.org/thinkfeel';
 
-const thinkFeel = new ThinkFeel({
-  apiKey: process.env.THINKFEEL_API_KEY!,
-  personaId: process.env.THINKFEEL_PERSONA_ID!,
-});
+const thinkFeel = new ThinkFeel({ apiKey: process.env.THINKFEEL_API_KEY!, personaId: process.env.THINKFEEL_PERSONA_ID! });
 
-const response = await thinkFeel.generate({
-  messages: [{ role: 'user', content: 'Can we talk later?' }],
-});
+const response = await thinkFeel.generate({ messages: [{ role: 'user', content: 'Can we talk later?' }] });
 
 console.log(response.finalReply);
 ```
