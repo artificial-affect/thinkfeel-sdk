@@ -170,9 +170,7 @@ function resolveProfileName(values: CliValues, config: CliConfig) {
   return normalizeProfileName(flagProfile ?? process.env.THINKFEEL_PROFILE ?? config.activeProfile);
 }
 
-function getProfileConfig(config: CliConfig, profileName: string) {
-  return config.profiles[profileName] || {};
-}
+const getProfileConfig = (config: CliConfig, profileName: string) => config.profiles[profileName] || {};
 
 function setProfileConfig(config: CliConfig, profileName: string, profileConfig: ProfileConfig) {
   return { ...config, activeProfile: profileName, profiles: { ...config.profiles, [profileName]: profileConfig } };
@@ -295,15 +293,13 @@ function requireInput(command: string, input: string) {
   if (!input.trim()) throw new Error(`Missing input for "${command}".\n\n${usage}`);
 }
 
-function formatChunks(chunks: string[], fallback: string) {
-  return chunks.length > 0 ? chunks.join('\n') : fallback;
-}
+const formatChunks = (chunks: string[], fallback: string) => (chunks.length > 0 ? chunks.join('\n') : fallback);
 
 function minimalPublicJwk(publicJwk: JsonWebKey) {
   if (publicJwk.kty !== 'RSA' || !publicJwk.n || !publicJwk.e)
     throw new Error('Generated keypair did not produce an RSA public JWK.');
 
-  return { e: publicJwk.e, kty: 'RSA', n: publicJwk.n };
+  return { kty: 'RSA', e: publicJwk.e, n: publicJwk.n };
 }
 
 async function generateRecipientKeyPair() {
@@ -314,7 +310,7 @@ async function generateRecipientKeyPair() {
   );
 
   const publicJwk = minimalPublicJwk(await subtle.exportKey('jwk', keyPair.publicKey));
-  return { privateKey: keyPair.privateKey, publicJwk };
+  return { publicJwk, privateKey: keyPair.privateKey };
 }
 
 async function decryptEncryptedApiKey(privateKey: CryptoKey, encryptedApiKey: EncryptedApiKey) {

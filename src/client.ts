@@ -1,4 +1,4 @@
-import {
+import type {
   Message,
   ThinkFeelError,
   GenerateOptions,
@@ -33,9 +33,7 @@ function normalizeBaseUrl(baseUrl: string | undefined) {
   return trimmed ? trimmed.replace(/\/+$/, '') : DEFAULT_BASE_URL;
 }
 
-function normalizeRole(role: unknown) {
-  return typeof role === 'string' ? role.toLowerCase() : '';
-}
+const normalizeRole = (role: unknown) => (typeof role === 'string' ? role.toLowerCase() : '');
 
 function validateMessageContent(content: unknown, messageIndex: number) {
   if (content === null || content === undefined || typeof content === 'string') return;

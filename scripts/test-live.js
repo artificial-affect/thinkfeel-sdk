@@ -121,7 +121,7 @@ async function packAndInstall(tempDir) {
   const appDir = path.join(tempDir, 'app');
   const packDir = path.join(tempDir, 'pack');
   const npmCacheDir = path.join(tempDir, 'npm-cache');
-  const npmEnv = { ...process.env, npm_config_cache: npmCacheDir, npm_config_dry_run: 'false' };
+  const npmEnv = { ...process.env, npm_config_dry_run: 'false', npm_config_cache: npmCacheDir };
 
   step('Create temporary package install workspace');
   console.log(`    workspace: ${tempDir}`);
@@ -158,10 +158,10 @@ function cliEnv(config, extra = {}) {
   return env;
 }
 
-const runCli = (appDir, env, args, options = {}) => exec('npx', ['thinkfeel', ...args], { cwd: appDir, env, ...options });
+const runCli = (appDir, env, args, options = {}) => exec('npx', ['thinkfeel', ...args], { env, cwd: appDir, ...options });
 
 function withoutRuntimeCredentials(configDir, npmCacheDir) {
-  const env = { ...process.env, THINKFEEL_CONFIG_DIR: configDir, npm_config_cache: npmCacheDir };
+  const env = { ...process.env, npm_config_cache: npmCacheDir, THINKFEEL_CONFIG_DIR: configDir };
 
   delete env.THINKFEEL_API_KEY;
   delete env.THINKFEEL_BASE_URL;
