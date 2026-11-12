@@ -4,13 +4,17 @@
   "author": "Curve Labs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist",
     "SKILL.md"
   ],
   "name": "@curvelabs.org/thinkfeel",
-  "bin": { "thinkfeel": "dist/cli.js" },
+  "bin": {
+    "thinkfeel": "dist/cli.js"
+  },
   "description": "Official SDK for Curve ThinkFeel API",
   "keywords": [
     "curve",
@@ -19,8 +23,14 @@
     "sdk",
     "cli"
   ],
-  "devDependencies": { "@types/node": "^20", "typescript": "^5.7.3" },
-  "repository": { "type": "git", "url": "git+https://github.com/artificial-affect/thinkfeel-sdk.git" },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5.7.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artificial-affect/thinkfeel-sdk.git"
+  },
   "scripts": {
     "prepublishOnly": "npm test",
     "test": "bash scripts/index.sh",

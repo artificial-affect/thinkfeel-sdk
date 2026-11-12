@@ -36,10 +36,9 @@ const defaultBaseUrl = 'https://playground.curvelabs.org';
 const encryptedApiKeyVersion = 1;
 const defaultProfileName = 'default';
 const { subtle } = webcrypto;
-
 type CliValues = Record<string, string | boolean | undefined>;
 type ProfileConfig = { apiKey?: string; baseUrl?: string; apiKeyEnv?: string; personaId?: string };
-type CliConfig = { version: 2; activeProfile: string; profiles: Record<string, ProfileConfig> };
+type CliConfig = { version: 2; profiles: Record<string, ProfileConfig>; activeProfile: string };
 type EncryptedApiKey = { version?: unknown; ciphertext?: unknown };
 type CryptoKey = webcrypto.CryptoKey;
 type JsonWebKey = webcrypto.JsonWebKey;
@@ -47,7 +46,6 @@ type JsonWebKey = webcrypto.JsonWebKey;
 function getStringOption(values: CliValues, kebabName: string, camelName: string) {
   const kebabValue = values[kebabName];
   if (typeof kebabValue === 'string') return kebabValue;
-
   const camelValue = values[camelName];
   return typeof camelValue === 'string' ? camelValue : undefined;
 }
@@ -59,13 +57,10 @@ function getBooleanOption(values: CliValues, kebabName: string, camelName: strin
 function getConfigDir() {
   const override = process.env.THINKFEEL_CONFIG_DIR?.trim();
   if (override) return override;
-
   const home = homedir();
   if (!home) throw new Error('Unable to determine home directory.');
-
   if (platform() === 'darwin') return path.join(home, 'Library', 'Application Support', 'thinkfeel');
   if (platform() === 'win32') return path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), 'thinkfeel');
-
   return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), 'thinkfeel');
 }
 
@@ -74,8 +69,8 @@ const isNodeError = (error: unknown): error is NodeJS.ErrnoException => error in
 
 function normalizeProfileConfig(rawConfig: unknown): ProfileConfig {
   if (!rawConfig || typeof rawConfig !== 'object') return {};
-
   const config = rawConfig as ProfileConfig;
+
   return {
     apiKey: typeof config.apiKey === 'string' ? config.apiKey : undefined,
     baseUrl: typeof config.baseUrl === 'string' ? config.baseUrl : undefined,
@@ -87,6 +82,7 @@ function normalizeProfileConfig(rawConfig: unknown): ProfileConfig {
 function normalizeProfileName(value: string | undefined) {
   const profileName = (value || defaultProfileName).trim();
   if (!profileName) throw new Error('Profile name is required.');
+
   if (!/^[A-Za-z0-9._-]+$/.test(profileName))
     throw new Error('Profile name can only contain letters, numbers, dots, underscores, and hyphens.');
 
@@ -97,14 +93,13 @@ function normalizeEnvName(value: string | undefined) {
   const envName = (value || '').trim();
   if (!envName) throw new Error('Environment variable name is required.');
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(envName)) throw new Error(`Invalid environment variable name: ${envName}`);
-
   return envName;
 }
 
 function normalizeConfig(rawConfig: unknown): CliConfig {
   if (!rawConfig || typeof rawConfig !== 'object') return { version: 2, profiles: {}, activeProfile: defaultProfileName };
-
   const config = rawConfig as Partial<CliConfig> & ProfileConfig;
+
   if (config.version === 2 && config.profiles && typeof config.profiles === 'object') {
     const profiles: Record<string, ProfileConfig> = {};
 
@@ -113,18 +108,19 @@ function normalizeConfig(rawConfig: unknown): CliConfig {
       profiles[profileName] = normalizeProfileConfig(profileConfigRaw);
     }
 
-    return { profiles, version: 2, activeProfile: normalizeProfileName(config.activeProfile) };
+    return { version: 2, profiles, activeProfile: normalizeProfileName(config.activeProfile) };
   }
 
   const legacyProfile = normalizeProfileConfig(rawConfig);
+
   const hasLegacyConfig = Boolean(
     legacyProfile.apiKey || legacyProfile.apiKeyEnv || legacyProfile.baseUrl || legacyProfile.personaId
   );
 
   return {
     version: 2,
-    activeProfile: defaultProfileName,
     profiles: hasLegacyConfig ? { [defaultProfileName]: legacyProfile } : {},
+    activeProfile: defaultProfileName,
   };
 }
 
@@ -147,7 +143,6 @@ async function writeSavedConfig(config: CliConfig) {
   const configDir = getConfigDir();
   const configPath = getConfigPath();
   const configJson = `${JSON.stringify(config, null, 2)}\n`;
-
   await mkdir(configDir, { mode: 0o700, recursive: true });
   await writeFile(configPath, configJson, { mode: 0o600 });
 
@@ -178,7 +173,6 @@ function setProfileConfig(config: CliConfig, profileName: string, profileConfig:
 
 function printConfig(config: CliConfig, profileName: string) {
   const profileConfig = getProfileConfig(config, profileName);
-
   console.log(`Config path: ${getConfigPath()}`);
   console.log(`Profile: ${profileName}${config.activeProfile === profileName ? ' (active)' : ''}`);
   console.log(`API key: ${maskSecret(profileConfig.apiKey)}`);
@@ -189,8 +183,8 @@ function printConfig(config: CliConfig, profileName: string) {
 
 function printProfiles(config: CliConfig) {
   console.log(`Config path: ${getConfigPath()}`);
-
   const profileNames = Object.keys(config.profiles).sort();
+
   if (profileNames.length < 1) {
     console.log('(no profiles configured)');
     return;
@@ -211,10 +205,12 @@ function readStdin() {
   return new Promise<string>((resolve, reject) => {
     let text = '';
     process.stdin.setEncoding('utf8');
+
     process.stdin.on('data', chunk => {
       text += chunk;
       if (text.length > 100_000) reject(new Error('stdin payload is too large.'));
     });
+
     process.stdin.on('end', () => resolve(text));
     process.stdin.on('error', reject);
   });
@@ -229,7 +225,6 @@ function readEnvApiKey(envName: string) {
 function promptVisible(question: string) {
   return new Promise<string>(resolve => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
     rl.question(question, answer => {
       rl.close();
       resolve(answer);
@@ -243,7 +238,6 @@ function promptHidden(question: string) {
   return new Promise<string>((resolve, reject) => {
     const stdin = process.stdin;
     const stdout = process.stdout;
-
     let answer = '';
     const wasRaw = stdin.isRaw;
 
@@ -267,7 +261,6 @@ function promptHidden(question: string) {
         if (char === '\r' || char === '\n') {
           cleanup();
           stdout.write('\n');
-
           resolve(answer);
           return;
         }
@@ -283,7 +276,6 @@ function promptHidden(question: string) {
 
     stdout.write(question);
     stdin.setRawMode(true);
-
     stdin.resume();
     stdin.on('data', onData);
   });
@@ -329,7 +321,6 @@ async function decryptEncryptedApiKey(privateKey: CryptoKey, encryptedApiKey: En
 function openBrowser(url: string) {
   const command = platform() === 'darwin' ? 'open' : platform() === 'win32' ? 'cmd' : 'xdg-open';
   const args = platform() === 'win32' ? ['/c', 'start', '', url] : [url];
-
   execFile(command, args, error => {
     if (error) console.log(`Open this URL in your browser:\n${url}`);
   });
@@ -356,13 +347,16 @@ function readRequestBody(request: http.IncomingMessage) {
   return new Promise<string>((resolve, reject) => {
     let body = '';
     request.setEncoding('utf8');
+
     request.on('data', chunk => {
       body += chunk;
+
       if (body.length > 100_000) {
         reject(new Error('Login callback payload is too large.'));
         request.destroy();
       }
     });
+
     request.on('end', () => resolve(body));
     request.on('error', reject);
   });
@@ -371,6 +365,7 @@ function readRequestBody(request: http.IncomingMessage) {
 function startLoginCallbackServer(state: string) {
   let resolveCallback = (_value: { encryptedApiKey: EncryptedApiKey }) => {};
   let rejectCallback = (_reason?: unknown) => {};
+
   const callbackPromise = new Promise<{ encryptedApiKey: EncryptedApiKey }>((resolve, reject) => {
     resolveCallback = resolve;
     rejectCallback = reject;
@@ -388,14 +383,14 @@ function startLoginCallbackServer(state: string) {
 
           const form = new URLSearchParams(await readRequestBody(request));
           if (form.get('state') !== state) throw new Error('Invalid login callback state.');
-
           const encryptedApiKeyRaw = form.get('encrypted_api_key');
           if (!encryptedApiKeyRaw) throw new Error('Missing encrypted API key.');
-
           response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+
           response.end(
             '<!doctype html><title>ThinkFeel Login</title><p>ThinkFeel CLI login complete. You can close this tab.</p>'
           );
+
           server.close();
           resolveCallback({ encryptedApiKey: JSON.parse(encryptedApiKeyRaw) as EncryptedApiKey });
         } catch (error) {
@@ -415,12 +410,15 @@ function startLoginCallbackServer(state: string) {
       );
 
       server.on('close', () => clearTimeout(timeout));
+
       server.on('error', error => {
         reject(error);
         rejectCallback(error);
       });
+
       server.listen(0, '127.0.0.1', () => {
         const address = server.address();
+
         if (!address || typeof address === 'string') {
           server.close();
           const error = new Error('Failed to start local login callback.');
@@ -429,7 +427,7 @@ function startLoginCallbackServer(state: string) {
           return;
         }
 
-        resolve({ callbackPromise, redirectUri: `http://127.0.0.1:${address.port}/thinkfeel/callback` });
+        resolve({ redirectUri: `http://127.0.0.1:${address.port}/thinkfeel/callback`, callbackPromise });
       });
     }
   );
@@ -471,6 +469,7 @@ async function configure(values: CliValues) {
 
     const activeProfile =
       savedConfig.activeProfile === profileName ? Object.keys(nextProfiles).sort()[0] : savedConfig.activeProfile;
+
     await writeSavedConfig({ ...savedConfig, activeProfile, profiles: nextProfiles });
     console.log(`Deleted ThinkFeel profile "${profileName}" at ${getConfigPath()}`);
     return;
@@ -486,9 +485,7 @@ async function configure(values: CliValues) {
   const shouldReadApiKeyFromStdin = getBooleanOption(values, 'api-key-stdin', 'apiKeyStdin');
   const flagBaseUrl = getStringOption(values, 'base-url', 'baseUrl');
   const flagPersonaId = getStringOption(values, 'persona-id', 'personaId');
-
   if (flagApiKeyEnv && shouldReadApiKeyFromStdin) throw new Error('Use either --api-key-env or --api-key-stdin, not both.');
-
   const canPrompt = Boolean(process.stdin.isTTY && process.stdout.isTTY);
   let apiKey = savedProfile.apiKey;
   let apiKeyEnv = savedProfile.apiKeyEnv;
@@ -505,19 +502,14 @@ async function configure(values: CliValues) {
   } else if (!apiKey && !apiKeyEnv && canPrompt) apiKey = (await promptHidden('ThinkFeel API key: ')).trim();
 
   if (!personaId && canPrompt) personaId = (await promptVisible('Default ThinkFeel persona ID: ')).trim();
-
   if (baseUrl === undefined && canPrompt) baseUrl = (await promptVisible('Base URL (optional): ')).trim();
-
   if (!apiKey && !apiKeyEnv) throw new Error('Missing API key. Use --api-key-env, --api-key-stdin, or thinkfeel login.');
   if (!personaId) throw new Error('Missing persona ID.');
-
   const nextProfile: ProfileConfig = { personaId };
   if (apiKey) nextProfile.apiKey = apiKey;
   if (apiKeyEnv) nextProfile.apiKeyEnv = apiKeyEnv;
   if (baseUrl) nextProfile.baseUrl = baseUrl;
-
   await writeSavedConfig(setProfileConfig(savedConfig, profileName, nextProfile));
-
   console.log(`Saved ThinkFeel profile "${profileName}" at ${getConfigPath()}`);
 }
 
@@ -525,7 +517,6 @@ async function useProfile(profileNameRaw: string | undefined) {
   const savedConfig = await readSavedConfig();
   const profileName = normalizeProfileName(profileNameRaw);
   if (!savedConfig.profiles[profileName]) throw new Error(`ThinkFeel profile "${profileName}" does not exist.`);
-
   await writeSavedConfig({ ...savedConfig, activeProfile: profileName });
   console.log(`Active ThinkFeel profile: ${profileName}`);
 }
@@ -547,22 +538,20 @@ async function login(values: CliValues) {
   loginUrl.searchParams.set('name', keyName);
   loginUrl.searchParams.set('source', 'cli');
   loginUrl.searchParams.set('redirect_uri', redirectUri);
+
   loginUrl.searchParams.set(
     'recipient_public_key_jwk',
     Buffer.from(JSON.stringify(keyPair.publicJwk), 'utf8').toString('base64url')
   );
 
   await openLoginUrl(loginUrl.toString());
-
   const { encryptedApiKey } = await callbackPromise;
   const apiKey = await decryptEncryptedApiKey(keyPair.privateKey, encryptedApiKey);
   const nextProfile: ProfileConfig = { ...savedProfile, apiKey };
   delete nextProfile.apiKeyEnv;
-
   const personaId = flagPersonaId ?? process.env.THINKFEEL_PERSONA_ID ?? savedProfile.personaId;
   if (personaId) nextProfile.personaId = personaId;
   if (flagBaseUrl || savedProfile.baseUrl || process.env.THINKFEEL_BASE_URL) nextProfile.baseUrl = normalizedBaseUrl;
-
   await writeSavedConfig(setProfileConfig(savedConfig, profileName, nextProfile));
   console.log(`Saved ThinkFeel API key for profile "${profileName}" at ${getConfigPath()}`);
   if (!nextProfile.personaId) console.log('Run "thinkfeel configure" to set a default persona ID before generate/personify.');
@@ -582,12 +571,12 @@ async function main() {
       'base-url': { type: 'string' },
       'persona-id': { type: 'string' },
       'api-key-env': { type: 'string' },
-      json: { default: false, type: 'boolean' },
-      show: { default: false, type: 'boolean' },
-      clear: { default: false, type: 'boolean' },
-      variations: { default: false, type: 'boolean' },
-      apiKeyStdin: { default: false, type: 'boolean' },
-      'api-key-stdin': { default: false, type: 'boolean' },
+      json: { type: 'boolean', default: false },
+      show: { type: 'boolean', default: false },
+      clear: { type: 'boolean', default: false },
+      variations: { type: 'boolean', default: false },
+      apiKeyStdin: { type: 'boolean', default: false },
+      'api-key-stdin': { type: 'boolean', default: false },
       help: { short: 'h', default: false, type: 'boolean' },
     },
   });
@@ -609,10 +598,8 @@ async function main() {
   if (command === 'configure') return configure(values);
   if (command === 'profiles') return printProfiles(await readSavedConfig());
   if (command === 'use') return useProfile(positionals[1]);
-
   const { apiKey, baseUrl, personaId } = await resolveRuntimeProfileConfig(values);
   if (!apiKey || !personaId) throw new Error(setupGuidance);
-
   const thinkFeel = new ThinkFeel({ apiKey, baseUrl, personaId });
   const input = positionals.slice(1).join(' ');
 

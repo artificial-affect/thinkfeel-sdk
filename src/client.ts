@@ -55,16 +55,13 @@ function validateMessages(messages: unknown): Message[] {
 
   messages.forEach((message, index) => {
     if (!isRecord(message)) throw new Error(`messages[${index}] must be an object`);
-
     const role = normalizeRole(message.role);
     if (!MESSAGE_ROLES.has(role)) throw new Error(`messages[${index}].role must be user, assistant, system, or developer`);
-
     validateMessageContent(message.content, index);
   });
 
   const lastMessage = messages[messages.length - 1] as Record<string, unknown>;
   if (normalizeRole(lastMessage.role) !== 'user') throw new Error('Last message must be from user');
-
   return messages as Message[];
 }
 
@@ -75,7 +72,6 @@ async function readApiError(response: Response) {
 
   try {
     const errorData = JSON.parse(text) as ThinkFeelError;
-
     if (typeof errorData.message === 'string' && errorData.message) return errorData.message;
     if (typeof errorData.error === 'string' && errorData.error) return errorData.error;
   } catch {
@@ -92,7 +88,6 @@ export class ThinkFeel {
 
   constructor(config: ThinkFeelConfig) {
     if (!isRecord(config)) throw new Error('config object is required');
-
     this.baseUrl = normalizeBaseUrl(config.baseUrl);
     this.apiKey = requireText(config.apiKey, 'apiKey');
     this.personaId = requireText(config.personaId, 'personaId');
@@ -116,7 +111,6 @@ export class ThinkFeel {
 
   async generate(options: GenerateOptions): Promise<GenerateResponse> {
     if (!isRecord(options)) throw new Error('options object is required');
-
     const messages = validateMessages(options.messages);
 
     if (options.includeVariations !== undefined && typeof options.includeVariations !== 'boolean')
@@ -139,11 +133,8 @@ export class ThinkFeel {
 
   async personify(options: PersonifyOptions): Promise<PersonifyResponse> {
     if (!isRecord(options)) throw new Error('options object is required');
-
     const raw = requireText(options.raw, 'raw string');
-
     const data = await this.postJson<PersonifyApiResponse>('/api/v1/personify', { raw, personaId: this.personaId });
-
     return { chunks: data.chunks || [], personified: data.personified || '' };
   }
 }
