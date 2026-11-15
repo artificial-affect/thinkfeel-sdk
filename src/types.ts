@@ -1,9 +1,7 @@
 export interface ThinkFeelConfig {
   apiKey: string;
-
-  personaId: string;
-
   baseUrl?: string;
+  personaId: string;
 }
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'developer';
@@ -44,21 +42,16 @@ export interface RateLimit {
 }
 
 export interface GenerateResponse {
-  finalReply: string;
-
-  chunks: string[];
-
-  replyChoices?: string[];
-
   status: string;
-
+  chunks: string[];
+  finalReply: string;
+  replyChoices?: string[];
   rateLimits?: RateLimit[];
 }
 
 export interface PersonifyResponse {
-  personified: string;
-
   chunks: string[];
+  personified: string;
 }
 
 export interface ThinkFeelError {
